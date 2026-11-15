@@ -1287,9 +1287,14 @@
                 questionsContainer.appendChild(card);
             });
 
+            // 等瀏覽器完成字型載入、手機文字換行與 Grid 高度計算後，
+            // 依整份考卷的實際內容高度重設畫布，再重新量測每個答案圈。
             requestAnimationFrame(() => {
-                recalculateTargetRects();
-                redrawCanvas();
+                requestAnimationFrame(() => {
+                    resizeCanvas();
+                    recalculateTargetRects();
+                    redrawCanvas();
+                });
             });
         }
 
@@ -1314,8 +1319,22 @@
         }
 
         function resizeCanvas() {
-            const w = paperScrollContent.clientWidth || 680;
-            const h = paperScrollContent.clientHeight || 400;
+            // 畫布必須覆蓋「整張可捲動考卷」，不能只取 clientHeight（可視高度）。
+            // 手機上題目換行後 scrollHeight 會變大；舊畫布高度不足時，捲動後
+            // 指標座標與答案圈的位置就會逐漸錯開。
+            const w = Math.max(1, paperScrollContent.clientWidth || paperScrollArea.clientWidth || 680);
+            const h = Math.max(
+                paperScrollArea.clientHeight || 400,
+                paperScrollContent.scrollHeight || 0,
+                paperScrollContent.clientHeight || 0,
+                questionsContainer.scrollHeight || 0
+            );
+
+            canvas.style.position = 'absolute';
+            canvas.style.left = '0px';
+            canvas.style.top = '0px';
+            canvas.style.width = `${w}px`;
+            canvas.style.height = `${h}px`;
             canvas.width = w;
             canvas.height = h;
             recalculateTargetRects();
@@ -1854,8 +1873,19 @@
             const v = teacherScoreInput.value;
             document.getElementById('teacher-score-badge').textContent = v !== '' ? `得分：${v}` : '得分：--';
         });
-        paperScrollArea.addEventListener('scroll', recalculateTargetRects);
+        paperScrollArea.addEventListener('scroll', () => {
+            // 內容捲動時重新量測目標位置；畫布本身延伸至完整 scrollHeight，
+            // 所以筆跡仍以整張考卷的座標保存，不會因為手機捲動而漂移。
+            recalculateTargetRects();
+        }, { passive: true });
         window.addEventListener('resize', resizeCanvas);
+        if (typeof ResizeObserver !== 'undefined') {
+            const paperLayoutObserver = new ResizeObserver(() => {
+                resizeCanvas();
+            });
+            paperLayoutObserver.observe(paperScrollContent);
+            paperLayoutObserver.observe(questionsContainer);
+        }
         paperStage.addEventListener('pointerenter', () => { customCursor.style.display = 'block'; });
         paperStage.addEventListener('pointerleave', () => { customCursor.style.display = 'none'; });
 
