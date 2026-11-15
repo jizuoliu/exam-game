@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>模擬考生存戰：文具大作戰</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -683,149 +682,21 @@
 
     <script>
         // ==========================================
-        // 0. 雙人全球即時連線引擎 (WSS 雲端訊息通道 + 跨分頁即時同步 + 同機接力)
+        // 0. 雙人全球即時連線引擎 (HTTPS 雲端房間雙向同步 + 跨分頁即時同步 + 同機接力)
         // ==========================================
-        const ROOM_TOPIC_PREFIX = 'tw-exam-game-2026/rooms/';
-        const MQTT_BROKERS = [
-            'wss://broker.emqx.io:8084/mqtt',
-            'wss://broker.hivemq.com:8884/mqtt'
-        ];
-        let mqttClient = null;
-        let currentRoomTopic = null;
+        const NTFY_BASE = 'https://ntfy.sh/tw-exam-duel-2026-';
+        let activeRoomStream = null;
         let localBroadcast = null;
         let roomConnectTimer = null;
         let hostSyncInterval = null;
+        let guestPollInterval = null;
+        let lastProcessedTs = 0;
 
         // ==========================================
         // 1. Web Audio API 擬真文具音效引擎
+// ... existing code ... -->
         // ==========================================
-        class SoundEffects {
-            constructor() {
-                this.ctx = null;
-                this.lastScratchTime = 0;
-            }
-            init() {
-                if (!this.ctx) {
-                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                    this.ctx = new AudioCtx();
-                }
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-            }
-            playClick() {
-                this.init();
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(1100, now);
-                osc.frequency.exponentialRampToValueAtTime(320, now + 0.045);
-                gain.gain.setValueAtTime(0.25, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.05);
-            }
-            playSnap() {
-                this.init();
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(680, now);
-                osc.frequency.exponentialRampToValueAtTime(90, now + 0.09);
-                gain.gain.setValueAtTime(0.35, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.1);
-            }
-            playSharpen() {
-                this.init();
-                const now = this.ctx.currentTime;
-                for (let i = 0; i < 3; i++) {
-                    const t = now + i * 0.09;
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(280 + i * 60, t);
-                    osc.frequency.linearRampToValueAtTime(420 + i * 60, t + 0.06);
-                    gain.gain.setValueAtTime(0.12, t);
-                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start(t);
-                    osc.stop(t + 0.075);
-                }
-            }
-            playRefill() {
-                this.init();
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(520, now);
-                osc.frequency.exponentialRampToValueAtTime(980, now + 0.12);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.14);
-            }
-            playScratch(isEraser = false) {
-                this.init();
-                const now = this.ctx.currentTime;
-                if (now - this.lastScratchTime < 0.065) return;
-                this.lastScratchTime = now;
-
-                const bufferSize = this.ctx.sampleRate * 0.05;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = (Math.random() * 2 - 1) * 0.4;
-                }
-
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
-
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.value = isEraser ? 650 : 2400;
-                filter.Q.value = isEraser ? 1.5 : 3.2;
-
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(isEraser ? 0.18 : 0.09, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.ctx.destination);
-                noise.start(now);
-            }
-            playStamp() {
-                this.init();
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(160, now);
-                osc.frequency.exponentialRampToValueAtTime(42, now + 0.18);
-                gain.gain.setValueAtTime(0.45, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.2);
-            }
-        }
-        const sfx = new SoundEffects();
-
-        // ==========================================
-        // 11. 雙人好友連線房間建立、邀請碼加入與雲端 WSS 即時同步
+        // 11. 雙人好友連線房間建立、邀請碼加入與 HTTPS 雲端即時同步
         // ==========================================
         function generateRoomCode() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -850,15 +721,19 @@
                 clearInterval(hostSyncInterval);
                 hostSyncInterval = null;
             }
+            if (guestPollInterval) {
+                clearInterval(guestPollInterval);
+                guestPollInterval = null;
+            }
+            if (activeRoomStream) {
+                try { activeRoomStream.abort(); } catch (e) {}
+                activeRoomStream = null;
+            }
             if (localBroadcast) {
                 try { localBroadcast.close(); } catch (e) {}
                 localBroadcast = null;
             }
-            if (mqttClient) {
-                try { mqttClient.end(true); } catch (e) {}
-                mqttClient = null;
-            }
-            currentRoomTopic = null;
+            lastProcessedTs = 0;
             mp.roomCode = null;
             mp.roomData = null;
             mp.isLocalRelay = false;
@@ -867,27 +742,29 @@
             mp.hasShownFinalResult = false;
         }
 
-        function sendRoomMessage(payload) {
+        async function sendRoomMessage(payload) {
+            if (!mp.roomCode) return;
             const packet = {
                 ...payload,
                 senderIsHost: mp.isHost,
                 ts: Date.now()
             };
-            if (mqttClient && mqttClient.connected && currentRoomTopic) {
-                try {
-                    const subTopic = currentRoomTopic + (mp.isHost ? '/host' : '/guest');
-                    mqttClient.publish(subTopic, JSON.stringify(packet), { qos: 1, retain: true });
-                } catch (e) {}
-            }
             if (localBroadcast) {
                 try { localBroadcast.postMessage(packet); } catch (e) {}
             }
+            try {
+                await fetch(NTFY_BASE + mp.roomCode, {
+                    method: 'POST',
+                    body: JSON.stringify(packet)
+                });
+            } catch (e) {}
         }
 
         function processIncomingRoomPacket(msg) {
             if (!msg || !msg.type) return;
-            // 忽略自己發出的廣播封包
             if (msg.senderIsHost === mp.isHost) return;
+            if (msg.ts && msg.ts <= lastProcessedTs) return;
+            if (msg.ts) lastProcessedTs = msg.ts;
 
             if (msg.type === 'GUEST_JOINED' && mp.isHost && mp.roomData) {
                 if (mp.roomData.guestName !== msg.guestName) {
@@ -901,6 +778,10 @@
                     clearTimeout(roomConnectTimer);
                     roomConnectTimer = null;
                 }
+                if (guestPollInterval) {
+                    clearInterval(guestPollInterval);
+                    guestPollInterval = null;
+                }
                 mp.roomData = msg.roomData;
                 handleRoomStateUpdate(mp.roomData);
             }
@@ -912,53 +793,64 @@
             localBroadcast.onmessage = (event) => processIncomingRoomPacket(event.data);
         }
 
-        function connectCloudRoomChannel(code, brokerIndex = 0) {
-            if (typeof mqtt === 'undefined') {
-                document.getElementById('mp-lobby-status-msg').textContent = '⚠️ 無法載入連線模組，可點「📱 同機雙人接力」立即開玩！';
-                return;
-            }
-            const brokerUrl = MQTT_BROKERS[brokerIndex % MQTT_BROKERS.length];
-            currentRoomTopic = ROOM_TOPIC_PREFIX + code;
+        async function pollCachedRoomMessages(code) {
+            try {
+                const res = await fetch(`${NTFY_BASE}${code}/json?poll=1&since=10m`);
+                if (!res.ok) return;
+                const text = await res.text();
+                const lines = text.trim().split('\n');
+                for (const line of lines) {
+                    if (!line) continue;
+                    const evt = JSON.parse(line);
+                    if (evt.event === 'message' && evt.message) {
+                        const parsed = JSON.parse(evt.message);
+                        processIncomingRoomPacket(parsed);
+                    }
+                }
+            } catch (e) {}
+        }
+
+        async function startCloudRoomStream(code) {
+            const controller = new AbortController();
+            activeRoomStream = controller;
 
             try {
-                mqttClient = mqtt.connect(brokerUrl, {
-                    clientId: 'exam_' + (mp.isHost ? 'H_' : 'G_') + Math.random().toString(16).slice(2, 10),
-                    clean: true,
-                    connectTimeout: 5000,
-                    reconnectPeriod: 1500
+                const response = await fetch(`${NTFY_BASE}${code}/json?since=2m`, {
+                    signal: controller.signal
                 });
+                if (!response.ok || !response.body) return;
 
-                mqttClient.on('connect', () => {
-                    mqttClient.subscribe(currentRoomTopic + '/#', { qos: 1 }, (err) => {
-                        if (err) return;
-                        if (mp.isHost) {
-                            document.getElementById('mp-lobby-status-msg').textContent = '🌐 房間已成功建立並上線！快把上方 6 碼邀請碼傳給好友！';
-                            sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
-                        } else {
-                            document.getElementById('mp-lobby-status-msg').textContent = '📡 已連上伺服器，正在讀取房間資訊...';
-                            sendRoomMessage({ type: 'GUEST_JOINED', guestName: mp.playerName });
-                        }
-                    });
-                });
+                if (mp.isHost) {
+                    document.getElementById('mp-lobby-status-msg').textContent = '🌐 房間已成功建立並上線！快把上方 6 碼邀請碼傳給好友！';
+                }
 
-                mqttClient.on('message', (topic, messageBuffer) => {
-                    if (!topic.startsWith(currentRoomTopic)) return;
-                    try {
-                        const rawStr = messageBuffer.toString();
-                        if (!rawStr) return;
-                        const parsed = JSON.parse(rawStr);
-                        processIncomingRoomPacket(parsed);
-                    } catch (e) {}
-                });
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
 
-                mqttClient.on('error', () => {
-                    if (brokerIndex + 1 < MQTT_BROKERS.length) {
-                        try { mqttClient.end(true); } catch (e) {}
-                        connectCloudRoomChannel(code, brokerIndex + 1);
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const parts = buffer.split('\n');
+                    buffer = parts.pop();
+                    for (const line of parts) {
+                        if (!line.trim()) continue;
+                        try {
+                            const evt = JSON.parse(line);
+                            if (evt.event === 'message' && evt.message) {
+                                const parsed = JSON.parse(evt.message);
+                                processIncomingRoomPacket(parsed);
+                            }
+                        } catch (e) {}
                     }
-                });
+                }
             } catch (e) {
-                document.getElementById('mp-lobby-status-msg').textContent = '💡 若網路限制外部連線，可點下方「📱 同機雙人接力」直接輪流對戰！';
+                if (e.name !== 'AbortError') {
+                    setTimeout(() => {
+                        if (mp.roomCode === code) startCloudRoomStream(code);
+                    }, 1500);
+                }
             }
         }
 
@@ -975,7 +867,7 @@
             document.getElementById('mp-room-code-display').textContent = code;
             document.getElementById('mp-host-name-display').textContent = mp.playerName;
             document.getElementById('mp-guest-name-display').textContent = '⏳ 等待好友輸入邀請碼...';
-            document.getElementById('mp-lobby-status-msg').textContent = '🔄 正在連接全球連線伺服器...';
+            document.getElementById('mp-lobby-status-msg').textContent = '🌐 房間已建立！快把上方 6 碼邀請碼傳給好友！';
 
             mp.roomData = {
                 roomCode: code,
@@ -995,14 +887,15 @@
             };
             handleRoomStateUpdate(mp.roomData);
             initLocalChannel(code);
-            connectCloudRoomChannel(code, 0);
+            startCloudRoomStream(code);
+            sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
 
-            // 房主定期廣播最新狀態，確保好友隨時進房或網路抖動都能秒同步
+            // 房主定期廣播最新狀態，確保好友一輸入邀請碼就能秒抓到房間
             hostSyncInterval = setInterval(() => {
                 if (mp.isHost && mp.roomData) {
                     sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
                 }
-            }, 2000);
+            }, 2500);
         }
 
         function joinMultiplayerRoom() {
@@ -1022,26 +915,29 @@
             enterWaitingRoomUI(code);
             document.getElementById('mp-host-name-display').textContent = '🔍 搜尋房間中...';
             document.getElementById('mp-guest-name-display').textContent = mp.playerName;
-            document.getElementById('mp-lobby-status-msg').textContent = '正在連線至好友房間，請稍候（約 1～3 秒）...';
+            document.getElementById('mp-lobby-status-msg').textContent = '📡 正在連線至好友房間，請稍候...';
 
             initLocalChannel(code);
-            connectCloudRoomChannel(code, 0);
+            startCloudRoomStream(code);
+            pollCachedRoomMessages(code);
+            sendRoomMessage({ type: 'GUEST_JOINED', guestName: mp.playerName });
 
-            // 好友每 1.5 秒持續敲門直到收到房主回應
-            hostSyncInterval = setInterval(() => {
+            // 好友每 1.5 秒主動輪詢歷史紀錄與發送敲門通知，直到成功收到房主資訊
+            guestPollInterval = setInterval(() => {
                 if (!mp.isHost && !mp.roomData) {
+                    pollCachedRoomMessages(code);
                     sendRoomMessage({ type: 'GUEST_JOINED', guestName: mp.playerName });
                 } else if (mp.roomData) {
-                    clearInterval(hostSyncInterval);
-                    hostSyncInterval = null;
+                    clearInterval(guestPollInterval);
+                    guestPollInterval = null;
                 }
             }, 1500);
 
             roomConnectTimer = setTimeout(() => {
                 if (!mp.roomData) {
-                    document.getElementById('mp-lobby-status-msg').textContent = '⏳ 尚未收到房主回應：請確認朋友已按「建立房間」且停留在房間畫面內！';
+                    document.getElementById('mp-lobby-status-msg').textContent = '⏳ 尚未收到房主回應：請確認朋友已按「建立房間」且邀請碼無誤！';
                 }
-            }, 10000);
+            }, 12000);
         }
 
         // ==========================================
