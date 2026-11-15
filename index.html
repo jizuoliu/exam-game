@@ -188,7 +188,7 @@
                         <h1 class="font-exam font-black text-sm sm:text-xl text-gray-900 tracking-wide">國民小學定期評量 — 綜合能力測驗</h1>
                     </div>
                     <p class="text-[10px] sm:text-xs text-gray-600 mt-0.5 font-medium">
-                        ⚠️ 選擇題限用<strong class="text-gray-900 underline">鉛筆/自動筆</strong>畫卡；申論限用<strong class="text-blue-700 underline">原子筆</strong>；📱手機可<strong class="text-emerald-700 underline">雙指上下滑動</strong>看題！
+                        ⚠️ 選擇題限用<strong class="text-gray-900 underline">鉛筆/自動筆</strong>畫卡；申論限用<strong class="text-blue-700 underline">原子筆</strong>；選<strong class="text-orange-700 underline">✋ 小手</strong>可上下滑動考卷！
                     </p>
                 </div>
                 <div class="flex items-center gap-2 text-[11px] sm:text-xs font-exam border border-gray-700 px-2 py-0.5 sm:px-2.5 sm:py-1 bg-white/80">
@@ -198,7 +198,7 @@
                 </div>
             </div>
 
-            <!-- 可垂直捲動的考卷作答區 (包裹題目與對應畫布，手機滑動時筆跡會跟著考卷一起移動) -->
+            <!-- 可垂直捲動的考卷作答區 (包裹題目與對應畫布，滑動時筆跡會跟著考卷一起移動) -->
             <div id="paper-scroll-area" class="relative flex-1 my-1.5 sm:my-2 overflow-y-auto overflow-x-hidden pr-0.5">
                 <div id="paper-scroll-content" class="relative min-h-full flex flex-col">
                     <!-- 互動題目區 (DOM 結構與畫布疊加層) -->
@@ -207,36 +207,48 @@
                     </div>
 
                     <!-- 繪圖/筆跡/橡皮擦屑 Canvas 覆蓋整個可捲動作答區 -->
-                    <canvas id="paper-canvas" class="absolute inset-0 w-full h-full z-20" style="touch-action: pinch-zoom pan-y;"></canvas>
+                    <canvas id="paper-canvas" class="absolute inset-0 w-full h-full z-20" style="touch-action: none;"></canvas>
+                </div>
+            </div>
+
+            <!-- 計算草稿紙彈出層 (覆蓋在考卷上方供算數學使用) -->
+            <div id="scratchpad-modal" class="hidden absolute inset-2 sm:inset-4 bg-[#f7f1de] border-2 border-amber-800 rounded-md shadow-2xl z-30 flex flex-col overflow-hidden" style="background-image: linear-gradient(to right, rgba(180, 140, 90, 0.16) 1px, transparent 1px), linear-gradient(to bottom, rgba(180, 140, 90, 0.16) 1px, transparent 1px); background-size: 20px 20px;">
+                <div class="bg-amber-800 text-amber-50 px-3 py-1.5 flex items-center justify-between text-xs shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="font-black">🗒️ 數學計算草稿紙</span>
+                        <span id="scratchpad-tool-label" class="bg-amber-950/60 px-2 py-0.5 rounded text-[11px] text-amber-200">目前用筆：自動筆</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button id="clear-scratchpad-btn" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-2 py-0.5 rounded text-[11px] cursor-pointer">🗑️ 清空草稿</button>
+                        <button id="close-scratchpad-btn" class="bg-red-600 hover:bg-red-500 text-white font-bold px-2.5 py-0.5 rounded text-[11px] cursor-pointer">✖ 收回草稿紙</button>
+                    </div>
+                </div>
+                <div id="scratchpad-body" class="relative flex-1 w-full h-full">
+                    <canvas id="scratchpad-canvas" class="absolute inset-0 w-full h-full" style="touch-action: none;"></canvas>
                 </div>
             </div>
 
             <!-- 考卷底部頁碼與換頁按鈕 -->
-            <div class="border-t border-gray-400 pt-1.5 flex items-center justify-between text-xs text-gray-600 z-30 shrink-0">
-                <div class="flex items-center gap-2">
-                    <span id="tool-hint-banner" class="font-bold text-gray-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded">
-                        💡 目前手持：自動筆（精準畫卡、按太猛會斷芯）
-                    </span>
-                </div>
-                <button id="next-sheet-btn" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded shadow text-xs sm:text-sm cursor-pointer transition active:scale-95">
-                    🔄 翻到背面 (第 2 頁) ➔
+            <div class="border-t border-gray-400 pt-1.5 flex items-center justify-between text-[11px] sm:text-xs text-gray-600 z-30 shrink-0">
+                <span id="tool-hint-banner" class="font-bold text-amber-800 truncate max-w-[65%]">💡 目前手持：自動筆（精準畫卡、寫太急會斷芯！）</span>
+                <button id="next-sheet-btn" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded shadow text-xs transition cursor-pointer">
+                    翻到背面 (第 2 頁) ➔
                 </button>
             </div>
         </div>
     </main>
 
-    <!-- 底部文具盒工具列 (5大核心文具) -->
-    <footer class="w-full bg-[#3d2514]/95 border-t-4 border-[#2b190d] px-2 py-2 sm:py-2.5 z-30 shrink-0 shadow-2xl">
-        <div class="max-w-4xl mx-auto grid grid-cols-5 gap-1.5 sm:gap-3">
+    <!-- 底部文具盒工具列 (7大核心文具與輔助工具) -->
+    <footer class="w-full bg-[#3d2514]/95 border-t-4 border-[#2b190d] px-1.5 sm:px-2 py-2 sm:py-2.5 z-30 shrink-0 shadow-2xl">
+        <div class="max-w-5xl mx-auto grid grid-cols-7 gap-1 sm:gap-2">
             
             <!-- 1. 鉛筆 (Wooden Pencil) -->
-            <button id="tool-pencil" data-tool="pencil" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-amber-900">
+            <button id="tool-pencil" data-tool="pencil" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-amber-900">
                     <span>✏️ 鉛筆</span>
-                    <span id="pencil-sharp-text" class="text-emerald-700">100%</span>
+                    <span id="pencil-sharp-text" class="text-emerald-700 hidden sm:inline">100%</span>
                 </div>
-                <!-- SVG 黃桿鉛筆 -->
-                <svg class="w-10 h-10 sm:w-12 sm:h-12 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <g transform="rotate(-35 32 32)">
                         <rect x="24" y="6" width="16" height="8" rx="2" fill="#f472b6"/>
                         <rect x="24" y="13" width="16" height="4" fill="#9ca3af"/>
@@ -247,23 +259,21 @@
                         <polygon id="pencil-tip-svg" points="29.5,55.5 34.5,55.5 32,60" fill="#374151"/>
                     </g>
                 </svg>
-                <!-- 筆尖銳利度條 & 削鉛筆按鈕 -->
-                <div class="w-full flex items-center gap-1">
+                <div class="w-full flex items-center gap-0.5 sm:gap-1">
                     <div class="flex-1 h-1.5 bg-gray-300 rounded-full overflow-hidden">
                         <div id="pencil-sharp-bar" class="h-full bg-amber-500 transition-all" style="width: 100%;"></div>
                     </div>
-                    <span id="sharpen-action-badge" class="bg-amber-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded hover:bg-amber-500" title="點擊削尖鉛筆">削尖</span>
+                    <span id="sharpen-action-badge" class="bg-amber-600 text-white text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded hover:bg-amber-500" title="點擊削尖鉛筆">削尖</span>
                 </div>
             </button>
 
             <!-- 2. 自動筆 (Mechanical Pencil) -->
-            <button id="tool-mech" data-tool="mech" class="tool-slot active bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-sky-900">
+            <button id="tool-mech" data-tool="mech" class="tool-slot active bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-sky-900">
                     <span>🖊️ 自動筆</span>
-                    <span id="mech-lead-text" class="text-sky-700">100%</span>
+                    <span id="mech-lead-text" class="text-sky-700 hidden sm:inline">100%</span>
                 </div>
-                <!-- SVG 自動鉛筆 -->
-                <svg class="w-10 h-10 sm:w-12 sm:h-12 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <g transform="rotate(-35 32 32)">
                         <rect x="28" y="4" width="8" height="6" rx="1" fill="#cbd5e1"/>
                         <rect x="26" y="10" width="12" height="34" rx="2" fill="#0284c7"/>
@@ -273,81 +283,107 @@
                         <line id="mech-lead-svg" x1="32" y1="56" x2="32" y2="62" stroke="#1e293b" stroke-width="1.8"/>
                     </g>
                 </svg>
-                <div class="w-full flex items-center gap-1">
+                <div class="w-full flex items-center gap-0.5 sm:gap-1">
                     <div class="flex-1 h-1.5 bg-gray-300 rounded-full overflow-hidden">
                         <div id="mech-lead-bar" class="h-full bg-sky-500 transition-all" style="width: 100%;"></div>
                     </div>
-                    <span id="click-lead-badge" class="bg-sky-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded">按壓</span>
+                    <span id="click-lead-badge" class="bg-sky-600 text-white text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded">按壓</span>
                 </div>
             </button>
 
             <!-- 3. 自動筆筆芯盒 (Mechanical Pencil Lead Refill Box) -->
-            <button id="tool-leadbox" data-tool="leadbox" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-slate-800">
+            <button id="tool-leadbox" data-tool="leadbox" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-slate-800">
                     <span>📦 筆芯盒</span>
-                    <span id="lead-sticks-count" class="text-indigo-700 font-black">剩 4 根</span>
+                    <span id="lead-sticks-count" class="text-indigo-700 font-black">4根</span>
                 </div>
-                <!-- SVG 0.5mm 2B 自動筆筆芯盒 -->
-                <svg class="w-10 h-10 sm:w-12 sm:h-12 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <rect x="20" y="6" width="24" height="10" rx="2" fill="#1e3a8a"/>
                     <rect x="21" y="16" width="22" height="42" rx="2" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
                     <rect x="21" y="24" width="22" height="22" fill="#1d4ed8"/>
                     <text x="32" y="34" font-size="7" font-weight="bold" fill="#ffffff" text-anchor="middle">0.5</text>
                     <text x="32" y="42" font-size="6.5" font-weight="bold" fill="#facc15" text-anchor="middle">2B芯</text>
-                    <!-- 內部筆芯線條 -->
                     <line x1="25" y1="47" x2="25" y2="56" stroke="#334155" stroke-width="1.2"/>
                     <line x1="29" y1="47" x2="29" y2="56" stroke="#334155" stroke-width="1.2"/>
                     <line x1="33" y1="47" x2="33" y2="56" stroke="#334155" stroke-width="1.2"/>
                     <line x1="37" y1="47" x2="37" y2="56" stroke="#334155" stroke-width="1.2"/>
                 </svg>
                 <div class="w-full text-center">
-                    <span id="refill-prompt-badge" class="block w-full bg-indigo-600 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">點擊裝填筆芯</span>
+                    <span id="refill-prompt-badge" class="block w-full bg-indigo-600 text-white text-[8px] sm:text-[10px] font-bold py-0.5 rounded">補筆芯</span>
                 </div>
             </button>
 
             <!-- 4. 原子筆 (Ballpoint Pen) -->
-            <button id="tool-pen" data-tool="pen" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-blue-900">
+            <button id="tool-pen" data-tool="pen" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-blue-900">
                     <span>🖋️ 原子筆</span>
-                    <span class="text-red-600 font-bold">不可擦</span>
+                    <span class="text-red-600 font-bold hidden sm:inline">不可擦</span>
                 </div>
-                <!-- SVG 經典藍色原子筆 -->
-                <svg class="w-10 h-10 sm:w-12 sm:h-12 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <g transform="rotate(-35 32 32)">
                         <rect x="27" y="6" width="10" height="6" rx="2" fill="#1e40af"/>
                         <rect x="26" y="12" width="12" height="34" rx="3" fill="rgba(219, 234, 254, 0.85)" stroke="#2563eb" stroke-width="1.5"/>
-                        <!-- 內部藍色墨水芯 -->
                         <rect x="30.5" y="14" width="3" height="32" fill="#1d4ed8"/>
                         <polygon points="26,46 38,46 32,59" fill="#93c5fd" stroke="#2563eb" stroke-width="1"/>
                         <circle cx="32" cy="59.5" r="1.5" fill="#1e3a8a"/>
                     </g>
                 </svg>
                 <div class="w-full text-center">
-                    <span class="block w-full bg-blue-700 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">簽名/高分2x</span>
+                    <span class="block w-full bg-blue-700 text-white text-[8px] sm:text-[10px] font-bold py-0.5 rounded">簽名2x</span>
                 </div>
             </button>
 
             <!-- 5. 橡皮擦 (Eraser) -->
-            <button id="tool-eraser" data-tool="eraser" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-gray-800">
+            <button id="tool-eraser" data-tool="eraser" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-gray-800">
                     <span>🧽 橡皮擦</span>
-                    <span id="eraser-size-text" class="text-teal-700">100%</span>
+                    <span id="eraser-size-text" class="text-teal-700 hidden sm:inline">100%</span>
                 </div>
-                <!-- SVG 藍白黑經典塑膠擦 -->
-                <svg class="w-10 h-10 sm:w-12 sm:h-12 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <g transform="rotate(-15 32 32)">
                         <rect x="14" y="16" width="36" height="32" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
-                        <!-- 藍白黑紙套 -->
                         <rect x="14" y="23" width="36" height="18" fill="#0284c7"/>
                         <rect x="14" y="29" width="36" height="6" fill="#ffffff"/>
                         <rect x="14" y="35" width="36" height="6" fill="#0f172a"/>
                     </g>
                 </svg>
-                <div class="w-full flex items-center gap-1">
+                <div class="w-full flex items-center gap-0.5 sm:gap-1">
                     <div class="flex-1 h-1.5 bg-gray-300 rounded-full overflow-hidden">
                         <div id="eraser-size-bar" class="h-full bg-teal-500 transition-all" style="width: 100%;"></div>
                     </div>
-                    <span class="bg-teal-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded">擦拭+撥屑</span>
+                    <span class="bg-teal-600 text-white text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded">擦拭</span>
+                </div>
+            </button>
+
+            <!-- 6. 小手 (滑動考卷 / 撥橡皮擦屑) -->
+            <button id="tool-hand" data-tool="hand" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-orange-900">
+                    <span>✋ 小手</span>
+                    <span class="text-orange-600 font-bold hidden sm:inline">捲動</span>
+                </div>
+                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
+                    <path d="M22 32V16a3 3 0 0 1 6 0v12h2V12a3 3 0 0 1 6 0v16h2V14a3 3 0 0 1 6 0v16h2V20a3 3 0 0 1 6 0v20c0 10-7 16-17 16h-4c-8 0-13-5-16-12l-3-7a3 3 0 0 1 5-3l5 5V32z" fill="#fed7aa" stroke="#c2410c" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+                <div class="w-full text-center">
+                    <span class="block w-full bg-orange-600 text-white text-[8px] sm:text-[10px] font-bold py-0.5 rounded">上下滑動</span>
+                </div>
+            </button>
+
+            <!-- 7. 計算草稿紙 (Scratchpad) -->
+            <button id="tool-scratchpad" data-tool="scratchpad" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-amber-950">
+                    <span>🗒️ 草稿紙</span>
+                    <span class="text-amber-700 font-bold hidden sm:inline">計算</span>
+                </div>
+                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
+                    <rect x="14" y="10" width="36" height="44" rx="3" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+                    <line x1="20" y1="20" x2="44" y2="20" stroke="#d97706" stroke-width="1.5"/>
+                    <line x1="20" y1="28" x2="38" y2="28" stroke="#d97706" stroke-width="1.5"/>
+                    <line x1="20" y1="36" x2="42" y2="36" stroke="#d97706" stroke-width="1.5"/>
+                    <text x="32" y="48" font-size="9" font-weight="bold" fill="#92400e" text-anchor="middle">1+2=3</text>
+                </svg>
+                <div class="w-full text-center">
+                    <span id="scratchpad-badge" class="block w-full bg-amber-700 text-white text-[8px] sm:text-[10px] font-bold py-0.5 rounded">打開計算</span>
                 </div>
             </button>
 
@@ -360,7 +396,7 @@
             <div class="text-center border-b-2 border-gray-300 pb-3 mb-4">
                 <span class="inline-block bg-emerald-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full mb-1">🔔 自由作答 · 無時間限制</span>
                 <h2 class="font-exam text-2xl sm:text-3xl font-black text-gray-900">模擬考生存戰：文具大作戰</h2>
-                <p class="text-xs sm:text-sm text-gray-600 mt-1">從容挑選文具完成考題並維持考卷整潔，寫好後按右上角「交卷」才會批改對錯！</p>
+                <p class="text-xs sm:text-sm text-gray-600 mt-1">從容挑選文具完成考題，寫好後按右上角「交卷」才會批改對錯！</p>
             </div>
 
             <div class="space-y-2.5 text-xs sm:text-sm mb-5">
@@ -368,7 +404,7 @@
                     <span class="text-lg">✏️</span>
                     <div>
                         <strong class="text-amber-900">鉛筆 & 自動筆（畫卡專用）</strong>
-                        <p class="text-gray-600">用來塗滿選擇題答案卡！<strong>鉛筆</strong>寫久會鈍，需點「削尖」；<strong>自動筆</strong>精準快速，但寫太急會「啪！」一聲斷芯，需點<strong>📦 自動筆筆芯盒</strong>補充！</p>
+                        <p class="text-gray-600">用來塗滿選擇題答案卡！<strong>鉛筆</strong>寫久會鈍，需點「削尖」；<strong>自動筆</strong>精準快速，但寫太急會斷芯，需點<strong>📦 筆芯盒</strong>補充！</p>
                     </div>
                 </div>
 
@@ -380,11 +416,11 @@
                     </div>
                 </div>
 
-                <div class="flex items-start gap-2.5 bg-teal-50 p-2.5 rounded-lg border border-teal-200">
-                    <span class="text-lg">🧽</span>
+                <div class="flex items-start gap-2.5 bg-orange-50 p-2.5 rounded-lg border border-orange-200">
+                    <span class="text-lg">✋</span>
                     <div>
-                        <strong class="text-teal-900">橡皮擦 & 撥橡皮擦屑</strong>
-                        <p class="text-gray-600">寫錯選項時切換橡皮擦擦除重畫！擦完會產生<strong>橡皮擦屑</strong>，記得在考卷上滑動把擦屑撥乾淨，否則會降低卷面整潔度！</p>
+                        <strong class="text-orange-900">小手（滑動考卷） & 🗒️ 計算草稿紙</strong>
+                        <p class="text-gray-600">按<strong>✋ 小手</strong>就能用單指上下滑動考卷與撥掉橡皮擦屑；遇到數學題可點<strong>🗒️ 草稿紙</strong>打開計算紙列直式！</p>
                     </div>
                 </div>
             </div>
@@ -398,7 +434,6 @@
     <!-- 結算成績單 Modal -->
     <div id="result-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="bg-[#fcfbf7] max-w-md w-full rounded-xl border-4 border-gray-800 shadow-2xl p-6 text-gray-900 relative overflow-hidden">
-            <!-- 紅色老師評等印章 -->
             <div id="grade-stamp" class="hidden absolute top-5 right-5 border-4 border-red-600 text-red-600 rounded-lg px-3 py-1 font-exam font-black text-2xl sm:text-3xl tracking-widest uppercase select-none pointer-events-none">
                 優等生
             </div>
@@ -431,10 +466,7 @@
                 </div>
             </div>
 
-            <!-- 逐題批改明細 (交卷後才公布對錯與正確答案) -->
-            <div id="res-detail-list" class="max-h-36 overflow-y-auto bg-white border border-gray-300 rounded-lg p-2.5 mb-3 space-y-1.5 text-xs">
-                <!-- 由 JS 動態填入每題對錯 -->
-            </div>
+            <div id="res-detail-list" class="max-h-36 overflow-y-auto bg-white border border-gray-300 rounded-lg p-2.5 mb-3 space-y-1.5 text-xs"></div>
 
             <div class="bg-red-50 border border-red-200 rounded-lg p-2.5 mb-4">
                 <p class="text-xs font-bold text-red-800 mb-0.5">👨‍🏫 老師紅筆評語：</p>
@@ -451,7 +483,7 @@
 
     <script>
         /**
-         * Web Audio API 擬真文具音效產生器 (無需外部音檔)
+         * Web Audio API 擬真文具音效產生器
          */
         const sfx = {
             ctx: null,
@@ -567,23 +599,6 @@
                 osc.start(now);
                 osc.stop(now + 0.2);
             },
-            playSuccess() {
-                this.init();
-                if (!this.ctx) return;
-                const now = this.ctx.currentTime;
-                [523.25, 659.25, 783.99].forEach((freq, i) => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, now + i * 0.07);
-                    gain.gain.setValueAtTime(0.12, now + i * 0.07);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.2);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start(now + i * 0.07);
-                    osc.stop(now + i * 0.07 + 0.21);
-                });
-            },
             playBell() {
                 this.init();
                 if (!this.ctx) return;
@@ -659,22 +674,26 @@
             neatness: 100,
             pageNum: 1,              // 1 = 正面, 2 = 背面 (共兩面)
             maxPages: 2,
-            examDeck: [],            // 本次考試從 32 題中隨機抽出的 8 題 (正面4題 + 背面4題)
+            examDeck: [],            // 本次考試從 32 題中隨機抽出的 8 題
             completedCount: 0,
             correctCount: 0,
             wrongCount: 0,
             snapCount: 0,
-            gradedRecords: [],
-
-            // 當前選擇文具: 'pencil' | 'mech' | 'leadbox' | 'pen' | 'eraser'
+            gradedRecords: [],       // 交卷時統一批改的作答明細
+            // 當前選擇文具: 'pencil' | 'mech' | 'leadbox' | 'pen' | 'eraser' | 'hand'
             currentTool: 'mech',
+
+            // 草稿紙狀態
+            isScratchpadOpen: false,
+            scratchStrokes: [],
+            currentScratchStroke: null,
 
             // 文具耐久與狀態
             pencilSharpness: 100,    // 0 ~ 100
-            mechLeadAmount: 100,     // 當前那根自動筆芯剩餘量 0 ~ 100
-            mechLeadExtended: true,  // 自動筆芯是否按出
-            leadBoxSticks: 4,        // 筆芯盒剩餘根數
-            eraserSize: 100,         // 橡皮擦剩餘大小
+            mechLeadAmount: 100,     // 0 ~ 100
+            mechLeadExtended: true,
+            leadBoxSticks: 4,
+            eraserSize: 100,
 
             // 繪圖與互動狀態
             isPointerDown: false,
@@ -688,62 +707,15 @@
 
         const canvas = document.getElementById('paper-canvas');
         const ctx = canvas.getContext('2d');
+        const scratchpadModal = document.getElementById('scratchpad-modal');
+        const scratchpadBody = document.getElementById('scratchpad-body');
+        const scratchCanvas = document.getElementById('scratchpad-canvas');
+        const scratchCtx = scratchCanvas.getContext('2d');
         const paperStage = document.getElementById('paper-stage');
         const paperScrollArea = document.getElementById('paper-scroll-area');
         const paperScrollContent = document.getElementById('paper-scroll-content');
         const questionsContainer = document.getElementById('questions-container');
         const customCursor = document.getElementById('custom-cursor');
-
-        /**
-         * 動態調整高解析度畫布尺寸並重新計算作答框位置
-         */
-        function resizeCanvas() {
-            const rect = paperScrollContent.getBoundingClientRect();
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-            canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            recalculateTargetRects();
-            redrawCanvas();
-        }
-
-        /**
-         * 重新計算每個選擇題圓圈與申論作圖框相對於可捲動作答畫布的碰撞區
-         */
-        function recalculateTargetRects() {
-            const contentRect = paperScrollContent.getBoundingClientRect();
-            if (contentRect.width === 0 || contentRect.height === 0) return;
-
-            state.activeQuestions.forEach((qObj, idx) => {
-                if (qObj.type === 'choice') {
-                    qObj.optionRects = [0, 1, 2, 3].map(optIdx => {
-                        const el = questionsContainer.querySelector(`.answer-bubble[data-q="${idx}"][data-opt="${optIdx}"]`);
-                        if (!el) return null;
-                        const r = el.getBoundingClientRect();
-                        return {
-                            left: r.left - contentRect.left - 6,
-                            right: r.right - contentRect.left + 6,
-                            top: r.top - contentRect.top - 6,
-                            bottom: r.bottom - contentRect.top + 6
-                        };
-                    });
-                } else {
-                    const el = questionsContainer.querySelector(`.answer-target[data-target="${idx}"]`);
-                    if (el) {
-                        const r = el.getBoundingClientRect();
-                        qObj.targetRect = {
-                            left: r.left - contentRect.left,
-                            right: r.right - contentRect.left,
-                            top: r.top - contentRect.top,
-                            bottom: r.bottom - contentRect.top
-                        };
-                    }
-                }
-            });
-        }
-
-        window.addEventListener('resize', resizeCanvas);
-        paperScrollArea.addEventListener('scroll', recalculateTargetRects);
 
         /**
          * 陣列洗牌 (Fisher-Yates Shuffle)
@@ -758,314 +730,219 @@
         }
 
         /**
-         * 產生新的一頁考卷題目 (正面第1頁 / 背面第2頁，每面從 32 題庫中隨機挑 4 題不重複)
+         * 動態調整高解析度畫布尺寸並重新計算作答框位置
+         */
+        function resizeCanvas() {
+            const rect = paperScrollContent.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+            canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            recalculateTargetRects();
+            redrawCanvas();
+            if (state.isScratchpadOpen) {
+                resizeScratchCanvas();
+            }
+        }
+
+        function resizeScratchCanvas() {
+            const rect = scratchpadBody.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            scratchCanvas.width = Math.max(1, Math.floor(rect.width * dpr));
+            scratchCanvas.height = Math.max(1, Math.floor(rect.height * dpr));
+            scratchCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            redrawScratchCanvas();
+        }
+
+        function redrawScratchCanvas() {
+            const rect = scratchpadBody.getBoundingClientRect();
+            scratchCtx.clearRect(0, 0, rect.width, rect.height);
+            const allStrokes = state.currentScratchStroke
+                ? [...state.scratchStrokes, state.currentScratchStroke]
+                : state.scratchStrokes;
+            for (const st of allStrokes) {
+                if (!st.points || st.points.length === 0) continue;
+                scratchCtx.save();
+                scratchCtx.lineCap = 'round';
+                scratchCtx.lineJoin = 'round';
+                scratchCtx.strokeStyle = st.color;
+                scratchCtx.lineWidth = st.width;
+                scratchCtx.beginPath();
+                scratchCtx.moveTo(st.points[0].x, st.points[0].y);
+                for (let i = 1; i < st.points.length; i++) {
+                    scratchCtx.lineTo(st.points[i].x, st.points[i].y);
+                }
+                if (st.points.length === 1) {
+                    scratchCtx.lineTo(st.points[0].x + 0.1, st.points[0].y + 0.1);
+                }
+                scratchCtx.stroke();
+                scratchCtx.restore();
+            }
+        }
+
+        /**
+         * 產生當前頁面 (正面 4 題 或 背面 4 題)
          */
         function generateExamSheet() {
-            // 翻頁前先將本頁已作答題目存入批改紀錄（不提前揭曉對錯）
-            if (state.activeQuestions.length > 0) {
-                recordCurrentSheetAnswers();
-            }
-
             state.strokes = [];
+            state.currentStroke = null;
             state.crumbs = [];
+            paperScrollArea.scrollTop = 0;
+
+            const startIdx = (state.pageNum - 1) * 4;
+            const chosen = state.examDeck.slice(startIdx, startIdx + 4);
+
             questionsContainer.innerHTML = '';
-
-            // 從本局洗牌好的 8 題考卷組中，取出第 1 面 (0~3) 或第 2 面 (4~7) 的 4 題
-            const startIndex = (state.pageNum - 1) * 4;
-            const selected = state.examDeck.slice(startIndex, startIndex + 4);
-
-            state.activeQuestions = selected.map((item, idx) => ({
-                ...item,
-                id: idx,
-                // 選擇題：4 個選項各自獨立計算塗滿進度，不提示哪個才是正確答案
-                optionProgress: [0, 0, 0, 0],
-                selectedOption: null,
-                optionRects: [],
-                // 申論/作圖題進度
-                essayProgress: 0,
-                essayCompleted: false,
-                essayPointsAwarded: 0,
-                targetRect: null,
-                penPenaltyCooldown: 0
-            }));
-
-            const labels = ['A', 'B', 'C', 'D'];
-
-            state.activeQuestions.forEach((qObj, idx) => {
+            state.activeQuestions = chosen.map((qItem, idx) => {
+                const qNumber = startIdx + idx + 1;
                 const card = document.createElement('div');
-                card.className = 'bg-white/75 border border-gray-400 rounded p-2.5 flex flex-col justify-between relative shadow-sm';
-                card.dataset.qIndex = idx;
+                card.className = 'border border-gray-400/80 bg-white/75 rounded p-2 sm:p-2.5 flex flex-col justify-between relative';
 
-                if (qObj.type === 'choice') {
-                    const optionsHtml = qObj.options.map((opt, optIdx) => {
+                const labels = ['A', 'B', 'C', 'D'];
+                let bodyHtml = '';
+
+                if (qItem.type === 'choice') {
+                    const optionsHtml = qItem.options.map((opt, optIdx) => {
                         return `
-                            <div class="flex items-center gap-1.5 text-xs sm:text-sm py-0.5">
-                                <span data-q="${idx}" data-opt="${optIdx}" class="answer-bubble inline-flex items-center justify-center w-6 h-6 rounded-full border-2 border-gray-700 font-bold text-xs text-gray-800 bg-white transition-colors">
+                            <div class="flex items-center gap-1.5 text-xs sm:text-sm text-gray-800 py-0.5">
+                                <span id="target-opt-${idx}-${optIdx}" class="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-gray-700 font-bold text-[11px] bg-white shrink-0">
                                     ${labels[optIdx]}
                                 </span>
-                                <span class="text-gray-800 font-medium">${opt}</span>
+                                <span class="leading-tight font-medium">${opt}</span>
                             </div>
                         `;
                     }).join('');
 
-                    card.innerHTML = `
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-xs font-black text-gray-900">第 ${(state.pageNum - 1) * 4 + idx + 1} 題 <span class="text-[11px] font-normal text-gray-500">[畫卡題]</span></span>
-                                <span id="q-status-${idx}" class="text-[11px] font-bold text-gray-500">尚未畫卡</span>
-                            </div>
-                            <p class="text-xs sm:text-sm font-bold text-gray-800 mb-1.5 leading-snug">${qObj.q}</p>
-                            <div class="grid grid-cols-2 gap-x-2 gap-y-1 pl-1">
-                                ${optionsHtml}
-                            </div>
+                    bodyHtml = `
+                        <div class="text-xs sm:text-sm font-bold text-gray-900 mb-1 leading-snug">
+                            <span class="text-red-700 font-black mr-1">${qNumber}.</span>${qItem.q}
+                        </div>
+                        <div class="grid grid-cols-2 gap-1 mt-auto">
+                            ${optionsHtml}
                         </div>
                     `;
                 } else {
-                    const isPen = qObj.requiredTool === 'pen';
-                    card.innerHTML = `
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-xs font-black text-gray-900">第 ${(state.pageNum - 1) * 4 + idx + 1} 題 <span class="text-[11px] font-bold ${isPen ? 'text-blue-700' : 'text-amber-700'}">[${isPen ? '限用原子筆' : '鉛筆/自動筆'}]</span></span>
-                                <span id="q-status-${idx}" class="text-[11px] font-bold text-gray-500">尚未作答</span>
-                            </div>
-                            <p class="text-xs sm:text-sm font-bold text-gray-800 mb-2 leading-snug">${qObj.q}</p>
-                            <div data-target="${idx}" class="answer-target w-full h-14 sm:h-16 border-2 border-dashed ${isPen ? 'border-blue-600 bg-blue-50/50' : 'border-gray-700 bg-gray-100/60'} rounded flex items-center justify-center text-xs font-exam text-gray-500">
-                                ✍️ 請在此框內來回塗寫：${qObj.promptText}
-                            </div>
+                    const badgeColor = qItem.requiredTool === 'pen'
+                        ? 'border-blue-600 bg-blue-50/60 text-blue-800'
+                        : 'border-amber-600 bg-amber-50/60 text-amber-900';
+
+                    bodyHtml = `
+                        <div class="text-xs sm:text-sm font-bold text-gray-900 mb-1 leading-snug">
+                            <span class="text-red-700 font-black mr-1">${qNumber}.</span>${qItem.q}
+                        </div>
+                        <div id="target-box-${idx}" class="mt-auto h-14 sm:h-16 border-2 border-dashed ${badgeColor} rounded flex items-center justify-center text-xs font-bold">
+                            ✍️ ${qItem.promptText}
                         </div>
                     `;
                 }
 
+                card.innerHTML = `
+                    ${bodyHtml}
+                    <div class="mt-1.5 flex items-center justify-between text-[10px] text-gray-500 border-t border-gray-200 pt-1">
+                        <span>${qItem.type === 'choice' ? '塗滿任一選項畫卡' : '欄內往返塗滿作答'}</span>
+                        <span id="q-status-${idx}" class="font-bold text-gray-500">尚未畫卡</span>
+                    </div>
+                `;
                 questionsContainer.appendChild(card);
-            });
-            // 計算每個選項圈圈與作圖框相對於 canvas 的座標，並同步調整捲動區高度
-            requestAnimationFrame(() => {
-                paperScrollArea.scrollTop = 0;
-                resizeCanvas();
+
+                return {
+                    ...qItem,
+                    index: idx,
+                    optionProgress: [0, 0, 0, 0],
+                    selectedOption: null,
+                    essayProgress: 0,
+                    essayCompleted: false,
+                    essayPointsAwarded: 0,
+                    penPenaltyCooldown: 0,
+                    optionRects: [],
+                    targetRect: null
+                };
             });
 
-            const sideLabel = state.pageNum === 1 ? '正面 (第 1 / 2 頁)' : '背面 (第 2 / 2 頁)';
-            document.getElementById('page-num').textContent = sideLabel;
-
+            document.getElementById('page-num').textContent = state.pageNum === 1 ? '正面 (第 1 / 2 頁)' : '背面 (第 2 / 2 頁)';
             const nextBtn = document.getElementById('next-sheet-btn');
             if (state.pageNum < state.maxPages) {
-                nextBtn.textContent = '🔄 寫完正面，翻到背面 (第 2 頁) ➔';
-                nextBtn.className = 'bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded shadow text-xs sm:text-sm cursor-pointer transition active:scale-95';
+                nextBtn.textContent = '翻到背面 (第 2 頁) ➔';
+                nextBtn.className = 'bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded shadow text-xs transition cursor-pointer';
             } else {
-                nextBtn.textContent = '✅ 已是背面最後一頁，寫完可按上方「交卷」';
-                nextBtn.className = 'bg-amber-700 hover:bg-amber-600 text-white font-bold px-3 py-1 rounded shadow text-xs sm:text-sm cursor-pointer transition active:scale-95';
+                nextBtn.textContent = '🔔 寫完交卷閱卷';
+                nextBtn.className = 'bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1 rounded shadow text-xs transition cursor-pointer';
             }
 
-            redrawCanvas();
-            updateUI();
+            requestAnimationFrame(() => {
+                resizeCanvas();
+                updateUI();
+            });
         }
 
         /**
-         * 飄浮提示文字
+         * 計算每個選項圈圈與作圖框相對於可捲動作答區的座標矩形
+         */
+        function recalculateTargetRects() {
+            const contentRect = paperScrollContent.getBoundingClientRect();
+            state.activeQuestions.forEach((qObj, idx) => {
+                if (qObj.type === 'choice') {
+                    qObj.optionRects = [0, 1, 2, 3].map(optIdx => {
+                        const el = document.getElementById(`target-opt-${idx}-${optIdx}`);
+                        if (!el) return null;
+                        const r = el.getBoundingClientRect();
+                        return {
+                            left: r.left - contentRect.left - 6,
+                            right: r.right - contentRect.left + 6,
+                            top: r.top - contentRect.top - 6,
+                            bottom: r.bottom - contentRect.top + 6
+                        };
+                    });
+                } else {
+                    const el = document.getElementById(`target-box-${idx}`);
+                    if (!el) return;
+                    const r = el.getBoundingClientRect();
+                    qObj.targetRect = {
+                        left: r.left - contentRect.left,
+                        right: r.right - contentRect.left,
+                        top: r.top - contentRect.top,
+                        bottom: r.bottom - contentRect.top
+                    };
+                }
+            });
+        }
+
+        /**
+         * 取得指標相對於可捲動作答畫布的座標
+         */
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0].clientY);
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top,
+                clientX,
+                clientY
+            };
+        }
+
+        /**
+         * 顯示飄浮提示文字
          */
         function showFloatingToast(x, y, text, color = '#1f2937') {
             const toast = document.createElement('div');
             toast.className = 'floating-toast text-xs sm:text-sm';
-            toast.style.left = `${x}px`;
-            toast.style.top = `${y}px`;
+            toast.style.left = `${Math.min(Math.max(x, 80), paperScrollContent.clientWidth - 80)}px`;
+            toast.style.top = `${Math.max(y - 10, 12)}px`;
             toast.style.color = color;
             toast.textContent = text;
             paperScrollContent.appendChild(toast);
-            setTimeout(() => toast.remove(), 920);
+            setTimeout(() => toast.remove(), 900);
         }
 
         /**
-         * 更新所有 UI 儀表板、文具狀態條與游標圖示
-         */
-        function updateUI() {
-            const currentSheetAnswered = state.activeQuestions.filter(q =>
-                (q.type === 'choice' && q.selectedOption !== null) ||
-                (q.type === 'essay' && q.essayCompleted)
-            ).length;
-            const totalAnswered = state.gradedRecords.length + currentSheetAnswered;
-            document.getElementById('answered-count-display').textContent = `已寫 ${totalAnswered} 題`;
-
-            // 計算橡皮擦屑造成的整潔度扣分
-            const crumbPenalty = Math.min(35, state.crumbs.length * 1.5);
-            const effectiveNeatness = Math.max(0, Math.round(state.neatness - crumbPenalty));
-
-            document.getElementById('neatness-text').textContent = `${effectiveNeatness}%`;
-            document.getElementById('neatness-bar').style.width = `${effectiveNeatness}%`;
-            document.getElementById('neatness-text-mobile').textContent = `${effectiveNeatness}%`;
-            document.getElementById('neatness-bar-mobile').style.width = `${effectiveNeatness}%`;
-
-            const barColor = effectiveNeatness > 70 ? 'bg-emerald-400' : (effectiveNeatness > 40 ? 'bg-amber-400' : 'bg-red-500');
-            document.getElementById('neatness-bar').className = `h-full transition-all duration-200 ${barColor}`;
-            document.getElementById('neatness-bar-mobile').className = `h-full transition-all duration-200 ${barColor}`;
-
-            const crumbWarn = document.getElementById('crumb-warning-mobile');
-            if (state.crumbs.length >= 6) {
-                crumbWarn.classList.remove('hidden');
-            } else {
-                crumbWarn.classList.add('hidden');
-            }
-
-            // 鉛筆狀態
-            const sharpPct = Math.round(state.pencilSharpness);
-            document.getElementById('pencil-sharp-text').textContent = `${sharpPct}%`;
-            document.getElementById('pencil-sharp-bar').style.width = `${sharpPct}%`;
-            document.getElementById('pencil-sharp-text').className = sharpPct < 25 ? 'text-red-600 font-black animate-pulse' : 'text-emerald-700';
-
-            // 自動筆狀態
-            const mechPct = Math.round(state.mechLeadAmount);
-            const mechTextEl = document.getElementById('mech-lead-text');
-            if (mechPct <= 0) {
-                mechTextEl.textContent = '已斷/無芯';
-                mechTextEl.className = 'text-red-600 font-black animate-pulse';
-            } else if (!state.mechLeadExtended) {
-                mechTextEl.textContent = '未按出';
-                mechTextEl.className = 'text-amber-600 font-bold';
-            } else {
-                mechTextEl.textContent = `${mechPct}%`;
-                mechTextEl.className = 'text-sky-700';
-            }
-            document.getElementById('mech-lead-bar').style.width = `${mechPct}%`;
-            document.getElementById('mech-lead-svg').style.opacity = (mechPct > 0 && state.mechLeadExtended) ? '1' : '0';
-
-            // 自動筆筆芯盒狀態
-            document.getElementById('lead-sticks-count').textContent = `剩 ${state.leadBoxSticks} 根`;
-            const refillBadge = document.getElementById('refill-prompt-badge');
-            if (mechPct <= 0 && state.leadBoxSticks > 0) {
-                refillBadge.className = 'block w-full bg-red-600 text-white text-[9px] sm:text-[10px] font-black py-0.5 rounded animate-bounce';
-                refillBadge.textContent = '快點我補筆芯！';
-            } else {
-                refillBadge.className = 'block w-full bg-indigo-600 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded';
-                refillBadge.textContent = '點擊裝填筆芯';
-            }
-
-            // 橡皮擦狀態
-            const eraserPct = Math.round(state.eraserSize);
-            document.getElementById('eraser-size-text').textContent = `${eraserPct}%`;
-            document.getElementById('eraser-size-bar').style.width = `${eraserPct}%`;
-
-            // 工具列選中樣式與提示橫幅
-            document.querySelectorAll('.tool-slot').forEach(btn => btn.classList.remove('active'));
-            const activeBtn = document.getElementById(`tool-${state.currentTool}`);
-            if (activeBtn) activeBtn.classList.add('active');
-
-            const hints = {
-                pencil: '💡 目前手持：鉛筆（適合畫卡，筆尖變鈍時點下方「削尖」）',
-                mech: '💡 目前手持：自動筆（精準畫卡、寫太急太用力會斷芯！）',
-                leadbox: '📦 自動筆筆芯盒（已為自動筆補充新筆芯）',
-                pen: '💡 目前手持：原子筆（申論簽名高分 2x，不可擦拭、勿畫選擇題！）',
-                eraser: '💡 目前手持：橡皮擦（可擦鉛筆/自動筆；擦完請在紙上滑動撥掉擦屑！）'
-            };
-            document.getElementById('tool-hint-banner').textContent = hints[state.currentTool] || '';
-
-            updateCustomCursorIcon();
-        }
-
-        /**
-         * 更新滑鼠游標 SVG 圖示
-         */
-        function updateCustomCursorIcon() {
-            const icons = {
-                pencil: `<svg width="46" height="46" viewBox="0 0 64 64"><g transform="rotate(25 12 52)"><rect x="24" y="6" width="16" height="8" rx="2" fill="#f472b6"/><rect x="24" y="13" width="16" height="4" fill="#9ca3af"/><rect x="24" y="17" width="16" height="30" fill="#facc15"/><polygon points="24,47 40,47 32,60" fill="#fde68a"/><polygon points="29.5,55.5 34.5,55.5 32,60" fill="#374151"/></g></svg>`,
-                mech: `<svg width="46" height="46" viewBox="0 0 64 64"><g transform="rotate(25 12 52)"><rect x="28" y="4" width="8" height="6" rx="1" fill="#cbd5e1"/><rect x="26" y="10" width="12" height="34" rx="2" fill="#0284c7"/><polygon points="26,44 38,44 33.5,56 30.5,56" fill="#cbd5e1"/><line x1="32" y1="56" x2="32" y2="62" stroke="#1e293b" stroke-width="2"/></g></svg>`,
-                pen: `<svg width="46" height="46" viewBox="0 0 64 64"><g transform="rotate(25 12 52)"><rect x="27" y="6" width="10" height="6" rx="2" fill="#1e40af"/><rect x="26" y="12" width="12" height="34" rx="3" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/><rect x="30.5" y="14" width="3" height="32" fill="#1d4ed8"/><polygon points="26,46 38,46 32,59" fill="#93c5fd"/></g></svg>`,
-                eraser: `<svg width="42" height="42" viewBox="0 0 64 64"><rect x="14" y="18" width="36" height="28" rx="4" fill="#ffffff" stroke="#64748b" stroke-width="2"/><rect x="14" y="24" width="36" height="16" fill="#0284c7"/><rect x="14" y="34" width="36" height="6" fill="#0f172a"/></svg>`
-            };
-            customCursor.innerHTML = icons[state.currentTool] || icons.mech;
-        }
-
-        /**
-         * 文具切換與特殊互動（削鉛筆、按自動筆、裝填筆芯）
-         */
-        function selectTool(toolName) {
-            sfx.init();
-
-            if (toolName === 'pencil') {
-                if (state.currentTool === 'pencil' && state.pencilSharpness < 95) {
-                    state.pencilSharpness = 100;
-                    sfx.playSharpen();
-                    showFloatingToast(120, 420, '✨ 鉛筆削尖完成 (100%)！', '#b45309');
-                }
-                state.currentTool = 'pencil';
-            } else if (toolName === 'mech') {
-                if (state.currentTool === 'mech') {
-                    sfx.playClick();
-                    if (state.mechLeadAmount > 0) {
-                        state.mechLeadExtended = true;
-                        showFloatingToast(260, 420, '喀噠！按出自動筆芯', '#0369a1');
-                    } else {
-                        showFloatingToast(260, 420, '⚠️ 沒筆芯了！請點「筆芯盒」裝填', '#dc2626');
-                    }
-                } else {
-                    sfx.playClick();
-                    state.currentTool = 'mech';
-                }
-            } else if (toolName === 'leadbox') {
-                if (state.mechLeadAmount >= 85) {
-                    sfx.playClick();
-                    showFloatingToast(380, 420, '📦 自動筆裡還有筆芯，斷掉或用完再裝喔！', '#4338ca');
-                } else if (state.leadBoxSticks > 0) {
-                    state.leadBoxSticks--;
-                    state.mechLeadAmount = 100;
-                    state.mechLeadExtended = true;
-                    sfx.playClick();
-                    setTimeout(() => sfx.playClick(), 90);
-                    showFloatingToast(380, 420, '📦 裝填一根新的 0.5mm 2B 筆芯！', '#1d4ed8');
-                } else {
-                    // 緊急備用補給：搖一搖筆芯盒掉出備用芯
-                    state.leadBoxSticks = 2;
-                    state.mechLeadAmount = 100;
-                    state.mechLeadExtended = true;
-                    sfx.playSuccess();
-                    showFloatingToast(380, 420, '🎁 從筆袋角落找到備用筆芯盒！', '#059669');
-                }
-                state.currentTool = 'mech';
-            } else if (toolName === 'pen') {
-                sfx.playClick();
-                state.currentTool = 'pen';
-            } else if (toolName === 'eraser') {
-                state.currentTool = 'eraser';
-            }
-
-            updateUI();
-        }
-
-        // 綁定工具列按鈕事件
-        document.querySelectorAll('.tool-slot').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const tool = btn.dataset.tool;
-                if (e.target && e.target.id === 'sharpen-action-badge') {
-                    state.currentTool = 'pencil';
-                    state.pencilSharpness = 100;
-                    sfx.playSharpen();
-                    showFloatingToast(120, 420, '✨ 鉛筆削尖完成 (100%)！', '#b45309');
-                    updateUI();
-                    return;
-                }
-                selectTool(tool);
-            });
-        });
-
-        // 翻下一張考卷按鈕 (正面 -> 背面，背面寫完直接引導交卷)
-        document.getElementById('next-sheet-btn').addEventListener('click', () => {
-            if (!state.isPlaying) return;
-            if (state.pageNum < state.maxPages) {
-                sfx.playScratch('paper');
-                state.pageNum++;
-                generateExamSheet();
-                showFloatingToast(360, 260, '🔄 已翻到考卷背面 (第 2 / 2 頁)！', '#065f46');
-            } else {
-                finishExam();
-            }
-        });
-
-        /**
-         * 重繪畫布上的所有筆跡與橡皮擦屑
+         * 重繪整張畫布（所有筆跡 + 橡皮擦屑）
          */
         function redrawCanvas() {
             const rect = paperScrollContent.getBoundingClientRect();
             ctx.clearRect(0, 0, rect.width, rect.height);
 
-            // 1. 繪製所有筆跡
             const allStrokes = state.currentStroke ? [...state.strokes, state.currentStroke] : state.strokes;
             for (const st of allStrokes) {
                 if (!st.points || st.points.length === 0) continue;
@@ -1086,40 +963,229 @@
                 ctx.restore();
             }
 
-            // 2. 繪製橡皮擦屑 (灰白色小碎屑)
-            for (const c of state.crumbs) {
+            for (const crumb of state.crumbs) {
                 ctx.save();
-                ctx.translate(c.x, c.y);
-                ctx.rotate(c.angle);
-                ctx.fillStyle = '#d1d5db';
-                ctx.strokeStyle = '#9ca3af';
-                ctx.lineWidth = 0.7;
+                ctx.translate(crumb.x, crumb.y);
+                ctx.rotate(crumb.angle);
+                ctx.fillStyle = '#6b7280';
                 ctx.beginPath();
-                ctx.ellipse(0, 0, c.size * 1.4, c.size * 0.75, 0, 0, Math.PI * 2);
+                ctx.ellipse(0, 0, crumb.size, crumb.size * 0.55, 0, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.stroke();
                 ctx.restore();
             }
         }
 
         /**
-         * 取得指標相對於考卷畫布的座標
+         * 更新上方儀表板、文具狀態條與提示橫幅
          */
-        function getCanvasCoords(e) {
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return {
-                x: clientX - rect.left,
-                y: clientY - rect.top,
-                clientX,
-                clientY
+        function updateUI() {
+            const currentPageAnswered = state.activeQuestions.filter(q =>
+                q.type === 'choice' ? q.selectedOption !== null : q.essayCompleted
+            ).length;
+            const totalAnswered = state.gradedRecords.length + currentPageAnswered;
+            document.getElementById('answered-count-display').textContent = `已寫 ${totalAnswered} / 8 題`;
+
+            const crumbPenalty = Math.min(35, state.crumbs.length * 1.5);
+            const effectiveNeatness = Math.max(0, Math.round(state.neatness - crumbPenalty));
+            document.getElementById('neatness-text').textContent = `${effectiveNeatness}%`;
+            document.getElementById('neatness-bar').style.width = `${effectiveNeatness}%`;
+            document.getElementById('neatness-text-mobile').textContent = `${effectiveNeatness}%`;
+            document.getElementById('neatness-bar-mobile').style.width = `${effectiveNeatness}%`;
+
+            const crumbWarn = document.getElementById('crumb-warning-mobile');
+            if (state.crumbs.length >= 6) {
+                crumbWarn.classList.remove('hidden');
+            } else {
+                crumbWarn.classList.add('hidden');
+            }
+
+            // 鉛筆狀態
+            const sharpPct = Math.round(state.pencilSharpness);
+            document.getElementById('pencil-sharp-text').textContent = `${sharpPct}%`;
+            document.getElementById('pencil-sharp-bar').style.width = `${sharpPct}%`;
+            const sharpenBadge = document.getElementById('sharpen-action-badge');
+            if (sharpPct < 35) {
+                sharpenBadge.className = 'bg-red-600 text-white text-[8px] sm:text-[10px] font-black px-1 py-0.5 rounded animate-pulse';
+                sharpenBadge.textContent = '快削!';
+            } else {
+                sharpenBadge.className = 'bg-amber-600 text-white text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded hover:bg-amber-500';
+                sharpenBadge.textContent = '削尖';
+            }
+
+            // 自動筆狀態
+            const mechPct = Math.round(state.mechLeadAmount);
+            document.getElementById('mech-lead-text').textContent = mechPct > 0 ? `${mechPct}%` : '斷芯!';
+            document.getElementById('mech-lead-bar').style.width = `${mechPct}%`;
+            const mechLeadSvg = document.getElementById('mech-lead-svg');
+            if (mechLeadSvg) {
+                mechLeadSvg.setAttribute('y2', (state.mechLeadExtended && mechPct > 0) ? '62' : '56');
+            }
+
+            // 筆芯盒剩餘根數
+            document.getElementById('lead-sticks-count').textContent = `${state.leadBoxSticks}根`;
+            const refillBadge = document.getElementById('refill-prompt-badge');
+            if (mechPct <= 0 && state.leadBoxSticks > 0) {
+                refillBadge.className = 'block w-full bg-red-600 text-white text-[8px] sm:text-[10px] font-black py-0.5 rounded animate-bounce';
+                refillBadge.textContent = '快補芯!';
+            } else {
+                refillBadge.className = 'block w-full bg-indigo-600 text-white text-[8px] sm:text-[10px] font-bold py-0.5 rounded';
+                refillBadge.textContent = '補筆芯';
+            }
+
+            // 橡皮擦狀態
+            const eraserPct = Math.round(state.eraserSize);
+            document.getElementById('eraser-size-text').textContent = `${eraserPct}%`;
+            document.getElementById('eraser-size-bar').style.width = `${eraserPct}%`;
+
+            // 工具列選中樣式
+            document.querySelectorAll('.tool-slot').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`tool-${state.currentTool}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const scratchBtn = document.getElementById('tool-scratchpad');
+            const scratchBadge = document.getElementById('scratchpad-badge');
+            if (state.isScratchpadOpen) {
+                scratchBtn.classList.add('ring-2', 'ring-amber-400');
+                scratchBadge.textContent = '使用中';
+            } else {
+                scratchBtn.classList.remove('ring-2', 'ring-amber-400');
+                scratchBadge.textContent = '打開計算';
+            }
+
+            // 選擇小手時開放原生觸控捲動，其餘文具鎖定專心作答
+            canvas.style.touchAction = state.currentTool === 'hand' ? 'pan-y' : 'none';
+
+            const toolNames = {
+                pencil: '鉛筆',
+                mech: '自動筆',
+                pen: '原子筆',
+                eraser: '橡皮擦',
+                hand: '小手 (請先切回筆類再計算)'
             };
+            document.getElementById('scratchpad-tool-label').textContent = `目前用筆：${toolNames[state.currentTool] || '自動筆'}`;
+
+            const hints = {
+                pencil: '💡 目前手持：鉛筆（適合畫卡，筆尖變鈍時點下方「削尖」）',
+                mech: '💡 目前手持：自動筆（精準畫卡、寫太急太用力會斷芯！）',
+                leadbox: '📦 自動筆筆芯盒（已為自動筆補充新筆芯）',
+                pen: '💡 目前手持：原子筆（申論簽名高分 2x，不可擦拭、勿畫選擇題！）',
+                eraser: '💡 目前手持：橡皮擦（可擦鉛筆/自動筆；擦完可用小手撥掉擦屑！）',
+                hand: '✋ 目前手持：小手（滑動考卷可上下捲動看題目，也能撥掉橡皮擦屑！）'
+            };
+            document.getElementById('tool-hint-banner').textContent = hints[state.currentTool] || '';
+
+            updateCustomCursorIcon();
         }
 
-        // 滑鼠進入/離開考卷舞台顯示自訂文具游標
+        /**
+         * 更新滑鼠游標 SVG 圖示
+         */
+        function updateCustomCursorIcon() {
+            const icons = {
+                pencil: `<svg width="46" height="46" viewBox="0 0 64 64"><g transform="rotate(25 12 52)"><rect x="24" y="6" width="16" height="8" rx="2" fill="#f472b6"/><rect x="24" y="13" width="16" height="4" fill="#9ca3af"/><rect x="24" y="17" width="16" height="30" fill="#facc15"/><polygon points="24,47 40,47 32,60" fill="#fde68a"/><polygon points="29.5,55.5 34.5,55.5 32,60" fill="#374151"/></g></svg>`,
+                mech: `<svg width="46" height="46" viewBox="0 0 64 64"><g transform="rotate(25 12 52)"><rect x="28" y="4" width="8" height="6" rx="1" fill="#cbd5e1"/><rect x="26" y="10" width="12" height="34" rx="2" fill="#0284c7"/><polygon points="26,44 38,44 33.5,56 30.5,56" fill="#cbd5e1"/><line x1="32" y1="56" x2="32" y2="62" stroke="#1e293b" stroke-width="2"/></g></svg>`,
+                pen: `<svg width="46" height="46" viewBox="0 0 64 64"><g transform="rotate(25 12 52)"><rect x="27" y="6" width="10" height="6" rx="2" fill="#1e40af"/><rect x="26" y="12" width="12" height="34" rx="3" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/><rect x="30.5" y="14" width="3" height="32" fill="#1d4ed8"/><polygon points="26,46 38,46 32,59" fill="#93c5fd"/></g></svg>`,
+                eraser: `<svg width="42" height="42" viewBox="0 0 64 64"><rect x="14" y="18" width="36" height="28" rx="4" fill="#ffffff" stroke="#64748b" stroke-width="2"/><rect x="14" y="24" width="36" height="16" fill="#0284c7"/><rect x="14" y="34" width="36" height="6" fill="#0f172a"/></svg>`,
+                hand: `<svg width="42" height="42" viewBox="0 0 64 64"><path d="M22 32V16a3 3 0 0 1 6 0v12h2V12a3 3 0 0 1 6 0v16h2V14a3 3 0 0 1 6 0v16h2V20a3 3 0 0 1 6 0v20c0 10-7 16-17 16h-4c-8 0-13-5-16-12l-3-7a3 3 0 0 1 5-3l5 5V32z" fill="#fed7aa" stroke="#c2410c" stroke-width="2.5" stroke-linejoin="round"/></svg>`
+            };
+            customCursor.innerHTML = icons[state.currentTool] || icons.mech;
+        }
+
+        /**
+         * 選擇或操作文具工具
+         */
+        function selectTool(toolName) {
+            if (!state.isPlaying) return;
+
+            if (toolName === 'pencil') {
+                if (state.currentTool === 'pencil' && state.pencilSharpness < 95) {
+                    sfx.playSharpen();
+                    state.pencilSharpness = 100;
+                    showFloatingToast(paperScrollContent.clientWidth * 0.5, 45, '✏️ 喀嚓喀嚓！鉛筆削尖了 (100%)', '#d97706');
+                } else {
+                    sfx.playClick();
+                }
+                state.currentTool = 'pencil';
+            } else if (toolName === 'mech') {
+                if (state.currentTool === 'mech') {
+                    sfx.playClick();
+                    if (state.mechLeadAmount > 0) {
+                        state.mechLeadExtended = !state.mechLeadExtended;
+                        showFloatingToast(paperScrollContent.clientWidth * 0.5, 45, state.mechLeadExtended ? '🖊️ 喀！按出筆芯' : '🖊️ 喀！收回筆芯', '#0284c7');
+                    } else {
+                        sfx.playError();
+                        showFloatingToast(paperScrollContent.clientWidth * 0.5, 45, '⚠️ 沒筆芯了！請點「📦 筆芯盒」補充', '#dc2626');
+                    }
+                } else {
+                    sfx.playClick();
+                    state.currentTool = 'mech';
+                }
+            } else if (toolName === 'leadbox') {
+                if (state.mechLeadAmount >= 85) {
+                    sfx.playClick();
+                    showFloatingToast(paperScrollContent.clientWidth * 0.5, 45, '📦 自動筆目前還有筆芯喔！', '#4f46e5');
+                    state.currentTool = 'mech';
+                } else if (state.leadBoxSticks > 0) {
+                    sfx.playClick();
+                    state.leadBoxSticks--;
+                    state.mechLeadAmount = 100;
+                    state.mechLeadExtended = true;
+                    state.currentTool = 'mech';
+                    showFloatingToast(paperScrollContent.clientWidth * 0.5, 45, '📦 裝填成功！已換上全新 0.5mm 2B 筆芯', '#4338ca');
+                } else {
+                    sfx.playError();
+                    showFloatingToast(paperScrollContent.clientWidth * 0.5, 45, '😱 筆芯盒空了！請改用「✏️ 鉛筆」作答！', '#dc2626');
+                }
+            } else if (toolName === 'pen') {
+                sfx.playClick();
+                state.currentTool = 'pen';
+            } else if (toolName === 'eraser') {
+                sfx.playClick();
+                state.currentTool = 'eraser';
+            } else if (toolName === 'hand') {
+                sfx.playClick();
+                state.currentTool = 'hand';
+            } else if (toolName === 'scratchpad') {
+                toggleScratchpad();
+                return;
+            }
+
+            updateUI();
+        }
+
+        function toggleScratchpad(forceState) {
+            sfx.playScratch('paper');
+            state.isScratchpadOpen = typeof forceState === 'boolean' ? forceState : !state.isScratchpadOpen;
+            if (state.isScratchpadOpen) {
+                scratchpadModal.classList.remove('hidden');
+                if (state.currentTool === 'hand') {
+                    state.currentTool = 'mech';
+                }
+                requestAnimationFrame(() => resizeScratchCanvas());
+            } else {
+                scratchpadModal.classList.add('hidden');
+            }
+            updateUI();
+        }
+
+        // 綁定文具按鈕事件
+        document.querySelectorAll('.tool-slot').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectTool(btn.dataset.tool);
+            });
+        });
+
+        document.getElementById('close-scratchpad-btn').addEventListener('click', () => toggleScratchpad(false));
+        document.getElementById('clear-scratchpad-btn').addEventListener('click', () => {
+            sfx.playScratch('paper');
+            state.scratchStrokes = [];
+            state.currentScratchStroke = null;
+            redrawScratchCanvas();
+        });
+
+        // 游標進入與離開考卷舞台
         paperStage.addEventListener('pointerenter', (e) => {
-            if (e.pointerType === 'mouse' && state.currentTool !== 'leadbox') {
+            if (e.pointerType === 'mouse') {
                 customCursor.style.display = 'block';
             }
         });
@@ -1127,28 +1193,31 @@
             customCursor.style.display = 'none';
         });
 
-        // 追蹤目前螢幕上有幾根手指觸控（兩根手指時自動切換為上下捲動考卷模式）
-        const activeTouchPointers = new Set();
+        // 考卷捲動時同步更新目標框位置
+        paperScrollArea.addEventListener('scroll', () => {
+            recalculateTargetRects();
+        });
 
-        // 開始落筆 / 擦拭 / 撥擦屑
+        // 開始落筆 / 擦拭 / 撥擦屑 / 小手滑動
+        let isHandDragging = false;
+        let handStartClientY = 0;
+        let handStartScrollTop = 0;
+
         canvas.addEventListener('pointerdown', (e) => {
             if (!state.isPlaying) return;
-            if (e.pointerType === 'touch') {
-                activeTouchPointers.add(e.pointerId);
-                // 若偵測到兩根手指同時觸控，取消畫筆並讓瀏覽器執行上下捲動
-                if (activeTouchPointers.size >= 2) {
-                    state.isPointerDown = false;
-                    if (state.currentStroke) {
-                        state.strokes.push(state.currentStroke);
-                        state.currentStroke = null;
-                        redrawCanvas();
-                    }
-                    return;
-                }
-            }
             sfx.init();
 
             const pos = getCanvasCoords(e);
+
+            // 模式 0：✋ 小手模式（上下滑動捲動考卷 + 撥擦屑）
+            if (state.currentTool === 'hand') {
+                isHandDragging = true;
+                handStartClientY = pos.clientY;
+                handStartScrollTop = paperScrollArea.scrollTop;
+                state.lastPointer = { x: pos.x, y: pos.y };
+                return;
+            }
+
             state.isPointerDown = true;
             state.lastPointer = { x: pos.x, y: pos.y };
             state.lastMoveTime = performance.now();
@@ -1186,9 +1255,9 @@
                 width = 2.4;
                 color = 'rgba(15, 23, 42, 0.92)';
             } else if (state.currentTool === 'pen') {
-                width = 2.6;
+                width = 2.8;
                 color = 'rgba(29, 78, 216, 0.92)';
-                erasable = false; // 原子筆不可用橡皮擦擦除！
+                erasable = false;
             }
 
             state.currentStroke = {
@@ -1199,38 +1268,55 @@
                 erasable
             };
 
+            sfx.playScratch(state.currentTool);
             redrawCanvas();
         });
 
-        // 移動書寫 / 擦拭 / 撥橡皮擦屑
+        // 移動書寫 / 擦拭 / 撥橡皮擦屑 / 小手捲動考卷
         canvas.addEventListener('pointermove', (e) => {
-            if (e.pointerType === 'touch' && activeTouchPointers.size >= 2) {
-                return;
-            }
             const pos = getCanvasCoords(e);
             if (customCursor.style.display === 'block') {
                 customCursor.style.left = `${pos.clientX}px`;
                 customCursor.style.top = `${pos.clientY}px`;
             }
 
+            // ✋ 小手拖曳上下捲動考卷 + 撥擦屑
+            if (state.currentTool === 'hand') {
+                if (!isHandDragging) return;
+                const deltaY = pos.clientY - handStartClientY;
+                paperScrollArea.scrollTop = handStartScrollTop - deltaY;
+                recalculateTargetRects();
+
+                if (state.crumbs.length > 0) {
+                    let sweptCount = 0;
+                    state.crumbs = state.crumbs.filter(c => {
+                        if (Math.hypot(c.x - pos.x, c.y - pos.y) < 30) {
+                            sweptCount++;
+                            return false;
+                        }
+                        return true;
+                    });
+                    if (sweptCount > 0) {
+                        redrawCanvas();
+                        updateUI();
+                    }
+                }
+                return;
+            }
+
             if (!state.isPlaying || !state.isPointerDown || !state.lastPointer) return;
             if (e.cancelable) e.preventDefault();
 
             const now = performance.now();
-            const dx = pos.x - state.lastPointer.x;
-            const dy = pos.y - state.lastPointer.y;
-            const dist = Math.hypot(dx, dy);
             const dt = Math.max(1, now - state.lastMoveTime);
+            const dist = Math.hypot(pos.x - state.lastPointer.x, pos.y - state.lastPointer.y);
             const speed = dist / dt;
 
-            if (dist < 1.5) return;
-
-            // 任何手持文具滑過橡皮擦屑，都可以把擦屑撥離考卷！
+            // 撥掉經過的橡皮擦屑
             if (state.crumbs.length > 0) {
                 let sweptCount = 0;
                 state.crumbs = state.crumbs.filter(c => {
-                    const d = Math.hypot(c.x - pos.x, c.y - pos.y);
-                    if (d < 26) {
+                    if (Math.hypot(c.x - pos.x, c.y - pos.y) < 22) {
                         sweptCount++;
                         return false;
                     }
@@ -1335,11 +1421,80 @@
             state.lastMoveTime = now;
         });
 
-        // 結束筆劃
-        window.addEventListener('pointerup', (e) => {
-            if (e && e.pointerType === 'touch') {
-                activeTouchPointers.delete(e.pointerId);
+        // 草稿紙畫布書寫與擦拭互動
+        let isScratchDrawing = false;
+        let lastScratchPt = null;
+
+        scratchCanvas.addEventListener('pointerdown', (e) => {
+            if (!state.isPlaying || !state.isScratchpadOpen) return;
+            sfx.init();
+            const rect = scratchCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (state.currentTool === 'hand') {
+                showFloatingToast(x, y, '✋ 請先選鉛筆、自動筆或原子筆再算數學喔！', '#b45309');
+                return;
             }
+
+            isScratchDrawing = true;
+            lastScratchPt = { x, y };
+
+            if (state.currentTool === 'eraser') return;
+
+            let color = '#1e293b';
+            let width = 2.2;
+            if (state.currentTool === 'pen') {
+                color = '#1d4ed8';
+                width = 2.4;
+            } else if (state.currentTool === 'pencil') {
+                color = '#4b5563';
+                width = 3.0;
+            }
+
+            state.currentScratchStroke = {
+                points: [{ x, y }],
+                color,
+                width
+            };
+            redrawScratchCanvas();
+        });
+
+        scratchCanvas.addEventListener('pointermove', (e) => {
+            const rect = scratchCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (customCursor.style.display === 'block') {
+                customCursor.style.left = `${e.clientX}px`;
+                customCursor.style.top = `${e.clientY}px`;
+            }
+
+            if (!isScratchDrawing || !lastScratchPt) return;
+            if (e.cancelable) e.preventDefault();
+
+            if (state.currentTool === 'eraser') {
+                sfx.playScratch('eraser');
+                for (let i = state.scratchStrokes.length - 1; i >= 0; i--) {
+                    const st = state.scratchStrokes[i];
+                    st.points = st.points.filter(pt => Math.hypot(pt.x - x, pt.y - y) > 16);
+                    if (st.points.length === 0) state.scratchStrokes.splice(i, 1);
+                }
+                redrawScratchCanvas();
+                lastScratchPt = { x, y };
+                return;
+            }
+
+            if (!state.currentScratchStroke) return;
+            sfx.playScratch(state.currentTool);
+            state.currentScratchStroke.points.push({ x, y });
+            redrawScratchCanvas();
+            lastScratchPt = { x, y };
+        });
+
+        // 結束筆劃或小手拖曳
+        window.addEventListener('pointerup', () => {
+            isHandDragging = false;
             if (state.isPointerDown) {
                 state.isPointerDown = false;
                 if (state.currentStroke) {
@@ -1348,16 +1503,27 @@
                 }
                 redrawCanvas();
             }
+            if (isScratchDrawing) {
+                isScratchDrawing = false;
+                if (state.currentScratchStroke) {
+                    state.scratchStrokes.push(state.currentScratchStroke);
+                    state.currentScratchStroke = null;
+                }
+                redrawScratchCanvas();
+            }
         });
 
-        window.addEventListener('pointercancel', (e) => {
-            if (e && e.pointerType === 'touch') {
-                activeTouchPointers.delete(e.pointerId);
-            }
+        window.addEventListener('pointercancel', () => {
+            isHandDragging = false;
             state.isPointerDown = false;
             if (state.currentStroke) {
                 state.strokes.push(state.currentStroke);
                 state.currentStroke = null;
+            }
+            isScratchDrawing = false;
+            if (state.currentScratchStroke) {
+                state.scratchStrokes.push(state.currentScratchStroke);
+                state.currentScratchStroke = null;
             }
         });
 
@@ -1371,11 +1537,9 @@
                 if (qObj.type === 'choice') {
                     if (!qObj.optionRects || qObj.optionRects.length === 0) return;
 
-                    // 檢查落筆在哪一個選項圈圈內 (A/B/C/D 都能塗寫)
                     qObj.optionRects.forEach((r, optIdx) => {
                         if (!r) return;
                         if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
-                            // 檢查違規用筆：選擇題答案卡嚴禁使用原子筆！
                             if (state.currentTool === 'pen') {
                                 if (qObj.penPenaltyCooldown <= 0) {
                                     state.neatness = Math.max(0, state.neatness - 6);
@@ -1394,7 +1558,6 @@
 
                             qObj.optionProgress[optIdx] = Math.min(100, qObj.optionProgress[optIdx] + dist * 2.4 * sharpMultiplier);
 
-                            // 若該選項塗滿超過 75%，登記玩家選擇了此選項（但不顯示對錯）
                             if (qObj.optionProgress[optIdx] >= 75 && qObj.selectedOption !== optIdx) {
                                 qObj.selectedOption = optIdx;
                                 sfx.playClick();
@@ -1408,13 +1571,10 @@
                         }
                     });
                 } else {
-                    // 申論/簽名/作圖框題型
                     if (!qObj.targetRect) return;
                     const r = qObj.targetRect;
                     const inside = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
-                    if (!inside) return;
-
-                    if (qObj.essayCompleted) return;
+                    if (!inside || qObj.essayCompleted) return;
 
                     if (qObj.requiredTool === 'pen' && state.currentTool !== 'pen') {
                         if (qObj.penPenaltyCooldown <= 0) {
@@ -1543,7 +1703,6 @@
             state.isPlaying = false;
             sfx.playBell();
 
-            // 把當前這一頁的作答也納入批改清單
             recordCurrentSheetAnswers();
 
             const correctItems = state.gradedRecords.filter(r => r.isCorrect);
@@ -1562,7 +1721,6 @@
             document.getElementById('res-stats').textContent = `${state.snapCount} 次`;
             document.getElementById('res-total-score').textContent = `${totalScore} 分`;
 
-            // 填入逐題批改明細
             const detailListEl = document.getElementById('res-detail-list');
             if (state.gradedRecords.length === 0) {
                 detailListEl.innerHTML = `<p class="text-gray-500 text-center py-2">本次交白卷，沒有任何作答紀錄喔！</p>`;
@@ -1636,7 +1794,6 @@
             state.gradedRecords = [];
             state.activeQuestions = [];
 
-            // 從 32 種題目中隨機洗牌抽出 8 題（正面 4 題、背面 4 題）
             state.examDeck = shuffleArray(QUESTION_POOL).slice(0, 8);
 
             state.currentTool = 'mech';
@@ -1649,6 +1806,9 @@
             state.strokes = [];
             state.currentStroke = null;
             state.crumbs = [];
+            state.scratchStrokes = [];
+            state.currentScratchStroke = null;
+            toggleScratchpad(false);
 
             document.getElementById('start-modal').classList.add('hidden');
             const resultModal = document.getElementById('result-modal');
@@ -1659,12 +1819,30 @@
             generateExamSheet();
         }
 
-        // 綁定開始、交卷、重新開始按鈕
+        // 綁定開始、交卷、翻頁、重新開始按鈕
         document.getElementById('start-game-btn').addEventListener('click', startNewGame);
         document.getElementById('restart-game-btn').addEventListener('click', startNewGame);
         document.getElementById('submit-early-btn').addEventListener('click', finishExam);
 
-        // 支援鍵盤數字鍵 1~5 快速切換文具
+        document.getElementById('next-sheet-btn').addEventListener('click', () => {
+            if (!state.isPlaying) return;
+            if (state.pageNum < state.maxPages) {
+                recordCurrentSheetAnswers();
+                sfx.playScratch('paper');
+                const crumbPenalty = Math.min(20, state.crumbs.length * 1.2);
+                state.neatness = Math.max(0, state.neatness - crumbPenalty);
+                state.pageNum++;
+                generateExamSheet();
+                showFloatingToast(paperScrollContent.clientWidth * 0.5, 45, '📄 已翻到考卷背面 (第 2 / 2 頁)！', '#047857');
+            } else {
+                finishExam();
+            }
+        });
+
+        // 視窗尺寸改變時重新對齊畫布
+        window.addEventListener('resize', resizeCanvas);
+
+        // 支援鍵盤數字鍵 1~7 快速切換文具與草稿紙
         window.addEventListener('keydown', (e) => {
             if (!state.isPlaying) return;
             if (e.key === '1') selectTool('pencil');
@@ -1672,6 +1850,8 @@
             if (e.key === '3') selectTool('leadbox');
             if (e.key === '4') selectTool('pen');
             if (e.key === '5') selectTool('eraser');
+            if (e.key === '6') selectTool('hand');
+            if (e.key === '7') toggleScratchpad();
         });
 
         // 初始畫面尺寸調整
