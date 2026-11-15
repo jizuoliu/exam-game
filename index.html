@@ -1021,21 +1021,27 @@
             });
         }
 
-        function recalculateTargetRects() {
-            const contentRect = paperScrollContent.getBoundingClientRect();
-            const targets = questionsContainer.querySelectorAll('.answer-target');
-            state.targetRects = Array.from(targets).map(el => {
-                const r = el.getBoundingClientRect();
-                return {
-                    qid: el.dataset.qid,
-                    optIdx: parseInt(el.dataset.optIdx, 10),
-                    x: r.left - contentRect.left,
-                    y: r.top - contentRect.top,
-                    w: r.width,
-                    h: r.height
-                };
-            });
-        }
+   function recalculateTargetRects() {
+    const contentRect = paperScrollContent.getBoundingClientRect();
+
+    const scaleX = canvas.width / contentRect.width;
+    const scaleY = canvas.height / contentRect.height;
+
+    const targets = questionsContainer.querySelectorAll('.answer-target');
+
+    state.targetRects = Array.from(targets).map(el => {
+        const r = el.getBoundingClientRect();
+
+        return {
+            qid: el.dataset.qid,
+            optIdx: parseInt(el.dataset.optIdx, 10),
+            x: (r.left - contentRect.left) * scaleX,
+            y: (r.top - contentRect.top) * scaleY,
+            w: r.width * scaleX,
+            h: r.height * scaleY
+        };
+    });
+}
 
         function resizeCanvas() {
             const w = paperScrollContent.clientWidth || 680;
@@ -1093,13 +1099,17 @@
             });
         }
 
-        function getCanvasCoords(e) {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
-        }
+function getCanvasCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
+}
 
         function checkStrokeHitsTarget(stroke) {
             if (isTeacherRole() || !stroke || stroke.tool === 'eraser' || stroke.tool === 'hand') return;
