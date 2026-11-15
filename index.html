@@ -180,7 +180,7 @@
             <div class="shrink-0 bg-amber-800 text-amber-50 px-3 py-2.5 flex items-center justify-between gap-2">
                 <div class="min-w-0"><h2 class="font-black text-base sm:text-lg">📜 考場秘密小抄</h2><p class="text-[10px] sm:text-xs text-amber-200">偷偷看一下，別被劉老師抓到！</p></div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <span class="bg-red-600 text-white font-black text-xs px-2.5 py-2 rounded-lg whitespace-nowrap">⏱️ <span id="cheat-sheet-countdown">15</span> 秒</span>
+                    <span class="bg-red-600 text-white font-black text-xs px-2.5 py-2 rounded-lg whitespace-nowrap">⏱️ <span id="cheat-sheet-countdown">7</span> 秒</span>
                     <button id="close-cheat-sheet-btn" class="bg-red-700 hover:bg-red-600 text-white font-bold text-xs px-3 py-2 rounded-lg">✖ 收起</button>
                 </div>
             </div>
@@ -501,7 +501,7 @@
     <div id="start-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-[#fcfbf7] max-w-2xl w-full rounded-2xl border-4 border-[#7a4e2d] shadow-2xl p-5 sm:p-6 text-gray-800 my-auto">
             <div class="text-center border-b-2 border-gray-300 pb-3 mb-4">
-                <span class="inline-block bg-amber-700 text-white text-xs font-bold px-3 py-0.5 rounded-full mb-1">🏫 模擬考多重模式體驗 · 小一～國一全題庫</span>
+                <span class="inline-block bg-amber-700 text-white text-xs font-bold px-3 py-0.5 rounded-full mb-1">🏫 模擬考多重模式體驗 · 小一～國二八個年級題庫</span>
                 <h2 class="font-exam text-2xl sm:text-3xl font-black text-gray-900">模擬考生存戰：文具大作戰</h2>
                 <p class="text-xs sm:text-sm text-gray-600 mt-1">請選擇單人寫考卷、化身「劉老師」閱卷，或產生專屬邀請連結跟好朋友雙人對戰！</p>
             </div>
@@ -512,7 +512,7 @@
                     <div>
                         <div class="flex items-center justify-between mb-1.5">
                             <span class="text-xl">🎒</span>
-                            <span class="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">小一～國一題庫</span>
+                            <span class="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">小一～國二題庫</span>
                         </div>
                         <h3 class="font-exam text-lg font-black text-emerald-950 mb-1">📝 學生考試模式</h3>
                         <ul class="text-xs text-gray-700 space-y-1 mb-3 leading-relaxed">
@@ -575,7 +575,7 @@
         <div class="bg-[#fcfbf7] max-w-lg w-full rounded-2xl border-4 border-indigo-800 shadow-2xl p-5 sm:p-6 text-gray-800 my-auto">
             <div class="flex items-center justify-between border-b-2 border-gray-300 pb-3 mb-4">
                 <div>
-                    <span class="inline-block bg-indigo-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full mb-1">🌐 傳送連結即進房 · 小一～國一全題庫</span>
+                    <span class="inline-block bg-indigo-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full mb-1">🌐 傳送連結即進房 · 小一～國二八個年級題庫</span>
                     <h2 class="font-exam text-xl sm:text-2xl font-black text-gray-900">🤝 雙人考場連線大廳</h2>
                 </div>
                 <button id="close-mp-lobby-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-xs px-3 py-1.5 rounded-lg cursor-pointer">
@@ -701,6 +701,20 @@
                     🔄 再來一局（隨機題庫）
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- 單人考試年級選擇 -->
+    <div id="grade-select-modal" class="hidden fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm items-center justify-center p-4">
+        <div class="bg-[#fcfbf7] w-full max-w-md rounded-2xl border-4 border-emerald-700 shadow-2xl p-5 text-gray-800">
+            <h3 class="font-exam text-2xl font-black text-emerald-900 mb-2">🎓 選擇考試年級</h3>
+            <p class="text-sm text-gray-600 mb-3">單人考試只會抽選該年級題目；雙人對戰仍然是全題庫隨機。</p>
+            <label for="grade-select" class="block text-sm font-bold mb-1">年級</label>
+            <select id="grade-select" class="w-full border-2 border-emerald-500 rounded-xl p-3 text-base font-bold bg-white mb-4">
+                <optgroup label="國小"><option value="小一">國小一年級</option><option value="小二">國小二年級</option><option value="小三">國小三年級</option><option value="小四">國小四年級</option><option value="小五">國小五年級</option><option value="小六">國小六年級</option></optgroup>
+                <optgroup label="國中"><option value="國一">國中一年級（國一）</option><option value="國二">國中二年級（國二）</option></optgroup>
+            </select>
+            <div class="flex gap-2"><button id="cancel-grade-btn" class="flex-1 bg-gray-500 text-white font-bold py-3 rounded-xl">取消</button><button id="confirm-grade-btn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl">開始考試</button></div>
         </div>
     </div>
 
@@ -841,57 +855,196 @@
         // 2. 國小一年級 ～ 國中一年級 隨機題庫與配分生成器
         // ==========================================
         const QUESTION_BANK = [
-            { grade: '小一', subject: '國語', type: 'bubble', text: '「太陽從東邊升起」這句話中，「東」的反義詞是什麼？', options: ['(A) 南', '(B) 西', '(C) 北', '(D) 上'], correctIndex: 1 },
-            { grade: '小一', subject: '數學', type: 'bubble', text: '小華有 8 顆糖果，吃掉了 3 顆，還剩下幾顆糖果？', options: ['(A) 4 顆', '(B) 5 顆', '(C) 6 顆', '(D) 11 顆'], correctIndex: 1 },
-            { grade: '小二', subject: '數學', type: 'bubble', text: '九九乘法中，「7 × 8」的答案是多少？', options: ['(A) 54', '(B) 56', '(C) 63', '(D) 48'], correctIndex: 1 },
-            { grade: '小二', subject: '生活', type: 'bubble', text: '下列哪一種動物是昆蟲，擁有 6 隻腳？', options: ['(A) 蜘蛛', '(B) 螃蟹', '(C) 蝴蝶', '(D) 蚯蚓'], correctIndex: 2 },
-            { grade: '小三', subject: '自然', type: 'bubble', text: '磁鐵的哪一個部位磁力最強？', options: ['(A) 正中央', '(B) 兩端磁極', '(C) 只有N極', '(D) 全部一樣'], correctIndex: 1 },
-            { grade: '小三', subject: '數學', type: 'bubble', text: '一瓶果汁有 1 公升，平分倒進 4 個杯子，每杯有幾毫升？', options: ['(A) 200毫升', '(B) 250毫升', '(C) 400毫升', '(D) 500毫升'], correctIndex: 1 },
-            { grade: '小四', subject: '社會', type: 'bubble', text: '台灣本島最南端的岬角位於哪一個縣市？', options: ['(A) 高雄市', '(B) 屏東縣', '(C) 臺東縣', '(D) 花蓮縣'], correctIndex: 1 },
-            { grade: '小四', subject: '數學', type: 'bubble', text: '正三角形的每一個內角都是多少度？', options: ['(A) 45度', '(B) 60度', '(C) 90度', '(D) 120度'], correctIndex: 1 },
-            { grade: '小五', subject: '自然', type: 'bubble', text: '植物進行光合作用時，主要會吸收空氣中的哪一種氣體？', options: ['(A) 氧氣', '(B) 氮氣', '(C) 二氧化碳', '(D) 氫氣'], correctIndex: 2 },
-            { grade: '小五', subject: '數學', type: 'bubble', text: '計算「3/4 + 1/8」的結果是多少？', options: ['(A) 4/12', '(B) 7/8', '(C) 5/8', '(D) 1'], correctIndex: 1 },
-            { grade: '小六', subject: '英文', type: 'bubble', text: 'Which word means "圖書館" in English?', options: ['(A) Hospital', '(B) Library', '(C) Bakery', '(D) Museum'], correctIndex: 1 },
-            { grade: '小六', subject: '數學', type: 'bubble', text: '半徑 10 公分的圓，其圓周長大約是多少公分？（圓周率取 3.14）', options: ['(A) 31.4', '(B) 62.8', '(C) 314', '(D) 15.7'], correctIndex: 1 },
-            { grade: '國一', subject: '數學', type: 'bubble', text: '計算「(-5) + 8 - (-3)」的結果為何？', options: ['(A) 0', '(B) 6', '(C) -6', '(D) 16'], correctIndex: 1 },
-            { grade: '國一', subject: '生物', type: 'bubble', text: '細胞中負責進行呼吸作用、產生能量的「發電廠」是哪個構造？', options: ['(A) 葉綠體', '(B) 粒線體', '(C) 細胞壁', '(D) 液胞'], correctIndex: 1 }
+            { grade: "小一", subject: "國語", type: 'bubble', text: "「大」的相反詞是？", options: ["(A) 小", "(B) 高", "(C) 多", "(D) 長"], correctIndex: 0 },
+            { grade: "小一", subject: "國語", type: 'bubble', text: "「日」字代表什麼？", options: ["(A) 月亮", "(B) 太陽", "(C) 星星", "(D) 雨水"], correctIndex: 1 },
+            { grade: "小一", subject: "國語", type: 'bubble', text: "「口」可以用來做什麼？", options: ["(A) 走路", "(B) 說話", "(C) 看書", "(D) 寫字"], correctIndex: 1 },
+            { grade: "小一", subject: "數學", type: 'bubble', text: "6 + 3 = ?", options: ["(A) 8", "(B) 9", "(C) 10", "(D) 7"], correctIndex: 1 },
+            { grade: "小一", subject: "數學", type: 'bubble', text: "10 - 4 = ?", options: ["(A) 5", "(B) 6", "(C) 7", "(D) 8"], correctIndex: 1 },
+            { grade: "小一", subject: "數學", type: 'bubble', text: "哪個數字最大？", options: ["(A) 12", "(B) 9", "(C) 7", "(D) 11"], correctIndex: 0 },
+            { grade: "小一", subject: "數學", type: 'bubble', text: "一隻手有幾根手指？", options: ["(A) 4", "(B) 5", "(C) 6", "(D) 10"], correctIndex: 1 },
+            { grade: "小一", subject: "生活", type: 'bubble', text: "白天天空常見什麼？", options: ["(A) 太陽", "(B) 月亮", "(C) 螢火蟲", "(D) 路燈"], correctIndex: 0 },
+            { grade: "小一", subject: "生活", type: 'bubble', text: "下雨天出門適合帶什麼？", options: ["(A) 雨傘", "(B) 扇子", "(C) 墨鏡", "(D) 枕頭"], correctIndex: 0 },
+            { grade: "小一", subject: "生活", type: 'bubble', text: "紅燈亮時應該？", options: ["(A) 快跑", "(B) 停下來", "(C) 跳舞", "(D) 繼續走"], correctIndex: 1 },
+            { grade: "小一", subject: "自然", type: 'bubble', text: "人用什麼器官看東西？", options: ["(A) 耳朵", "(B) 眼睛", "(C) 鼻子", "(D) 嘴巴"], correctIndex: 1 },
+            { grade: "小一", subject: "自然", type: 'bubble', text: "魚通常用什麼呼吸？", options: ["(A) 肺", "(B) 鰓", "(C) 鼻子", "(D) 皮膚"], correctIndex: 1 },
+            { grade: "小一", subject: "國語", type: 'bubble', text: "「山」字有幾個主要尖峰筆畫形狀？", options: ["(A) 1", "(B) 2", "(C) 3", "(D) 4"], correctIndex: 2 },
+            { grade: "小一", subject: "數學", type: 'bubble', text: "2 + 2 + 2 = ?", options: ["(A) 4", "(B) 5", "(C) 6", "(D) 8"], correctIndex: 2 },
+            { grade: "小一", subject: "數學", type: 'bubble', text: "星期一的隔天是星期幾？", options: ["(A) 星期日", "(B) 星期二", "(C) 星期三", "(D) 星期五"], correctIndex: 1 },
+            { grade: "小一", subject: "生活", type: 'bubble', text: "刷牙主要是為了？", options: ["(A) 清潔牙齒", "(B) 讓頭髮變長", "(C) 保暖", "(D) 增加身高"], correctIndex: 0 },
+            { grade: "小一", subject: "自然", type: 'bubble', text: "植物通常需要什麼才能生長？", options: ["(A) 水和陽光", "(B) 糖果", "(C) 汽油", "(D) 塑膠"], correctIndex: 0 },
+            { grade: "小一", subject: "國語", type: 'bubble', text: "「早」的相反詞最接近？", options: ["(A) 快", "(B) 晚", "(C) 高", "(D) 遠"], correctIndex: 1 },
+            { grade: "小一", subject: "數學", type: 'bubble', text: "有3顆紅球和2顆藍球，共幾顆？", options: ["(A) 4", "(B) 5", "(C) 6", "(D) 7"], correctIndex: 1 },
+            { grade: "小一", subject: "生活", type: 'bubble', text: "過馬路應走哪裡？", options: ["(A) 斑馬線", "(B) 花圃", "(C) 車道中央", "(D) 停車格"], correctIndex: 0 },
+            { grade: "小二", subject: "國語", type: 'bubble', text: "「晴朗」通常形容什麼天氣？", options: ["(A) 下大雨", "(B) 陽光明亮", "(C) 刮颱風", "(D) 下大雪"], correctIndex: 1 },
+            { grade: "小二", subject: "國語", type: 'bubble', text: "「安靜」的相反詞是？", options: ["(A) 吵鬧", "(B) 平穩", "(C) 整齊", "(D) 緩慢"], correctIndex: 0 },
+            { grade: "小二", subject: "數學", type: 'bubble', text: "7 × 6 = ?", options: ["(A) 36", "(B) 42", "(C) 48", "(D) 56"], correctIndex: 1 },
+            { grade: "小二", subject: "數學", type: 'bubble', text: "36 ÷ 4 = ?", options: ["(A) 8", "(B) 9", "(C) 10", "(D) 12"], correctIndex: 1 },
+            { grade: "小二", subject: "數學", type: 'bubble', text: "一盒彩筆有12枝，3盒共有？", options: ["(A) 24", "(B) 30", "(C) 36", "(D) 48"], correctIndex: 2 },
+            { grade: "小二", subject: "數學", type: 'bubble', text: "1小時有幾分鐘？", options: ["(A) 30", "(B) 60", "(C) 90", "(D) 100"], correctIndex: 1 },
+            { grade: "小二", subject: "生活", type: 'bubble', text: "郵差主要負責？", options: ["(A) 送信件", "(B) 修水管", "(C) 看病", "(D) 種田"], correctIndex: 0 },
+            { grade: "小二", subject: "生活", type: 'bubble', text: "看到同學跌倒，適合怎麼做？", options: ["(A) 嘲笑他", "(B) 主動幫忙", "(C) 推開他", "(D) 假裝沒看到"], correctIndex: 1 },
+            { grade: "小二", subject: "自然", type: 'bubble', text: "蝴蝶的腳有幾隻？", options: ["(A) 4", "(B) 6", "(C) 8", "(D) 10"], correctIndex: 1 },
+            { grade: "小二", subject: "自然", type: 'bubble', text: "下列哪個是哺乳類？", options: ["(A) 青蛙", "(B) 麻雀", "(C) 狗", "(D) 蝴蝶"], correctIndex: 2 },
+            { grade: "小二", subject: "國語", type: 'bubble', text: "「森林」是指？", options: ["(A) 很多樹木的地方", "(B) 很多房子的地方", "(C) 大海", "(D) 沙漠"], correctIndex: 0 },
+            { grade: "小二", subject: "數學", type: 'bubble', text: "50元買32元物品，找回？", options: ["(A) 8元", "(B) 18元", "(C) 22元", "(D) 28元"], correctIndex: 1 },
+            { grade: "小二", subject: "數學", type: 'bubble', text: "數列2、4、6、8，下一個是？", options: ["(A) 9", "(B) 10", "(C) 11", "(D) 12"], correctIndex: 1 },
+            { grade: "小二", subject: "生活", type: 'bubble', text: "吃飯前應該先？", options: ["(A) 洗手", "(B) 跑步", "(C) 睡覺", "(D) 看電視"], correctIndex: 0 },
+            { grade: "小二", subject: "自然", type: 'bubble', text: "水結冰後會變成？", options: ["(A) 水蒸氣", "(B) 冰", "(C) 沙子", "(D) 油"], correctIndex: 1 },
+            { grade: "小二", subject: "自然", type: 'bubble', text: "鳥類通常有什麼？", options: ["(A) 羽毛", "(B) 魚鱗", "(C) 六隻腳", "(D) 觸角"], correctIndex: 0 },
+            { grade: "小二", subject: "社會", type: 'bubble', text: "地圖可以幫助我們？", options: ["(A) 辨認方向和位置", "(B) 煮飯", "(C) 測量體溫", "(D) 種花"], correctIndex: 0 },
+            { grade: "小二", subject: "國語", type: 'bubble', text: "「勇敢」的意思最接近？", options: ["(A) 害怕", "(B) 有膽量", "(C) 懶惰", "(D) 疲倦"], correctIndex: 1 },
+            { grade: "小二", subject: "數學", type: 'bubble', text: "正方形有幾條一樣長的邊？", options: ["(A) 2", "(B) 3", "(C) 4", "(D) 5"], correctIndex: 2 },
+            { grade: "小二", subject: "生活", type: 'bubble', text: "垃圾應該如何處理？", options: ["(A) 隨地丟棄", "(B) 分類後丟入垃圾桶", "(C) 丟進河裡", "(D) 埋在操場"], correctIndex: 1 },
+            { grade: "小三", subject: "國語", type: 'bubble', text: "「井然有序」的意思是？", options: ["(A) 非常混亂", "(B) 整齊有條理", "(C) 速度很快", "(D) 十分吵鬧"], correctIndex: 1 },
+            { grade: "小三", subject: "國語", type: 'bubble', text: "「勤勞」的相反詞是？", options: ["(A) 努力", "(B) 懶惰", "(C) 認真", "(D) 勇敢"], correctIndex: 1 },
+            { grade: "小三", subject: "數學", type: 'bubble', text: "125 + 278 = ?", options: ["(A) 393", "(B) 403", "(C) 413", "(D) 423"], correctIndex: 1 },
+            { grade: "小三", subject: "數學", type: 'bubble', text: "600 - 245 = ?", options: ["(A) 345", "(B) 355", "(C) 365", "(D) 375"], correctIndex: 1 },
+            { grade: "小三", subject: "數學", type: 'bubble', text: "8 × 9 = ?", options: ["(A) 63", "(B) 72", "(C) 81", "(D) 89"], correctIndex: 1 },
+            { grade: "小三", subject: "數學", type: 'bubble', text: "72 ÷ 8 = ?", options: ["(A) 7", "(B) 8", "(C) 9", "(D) 10"], correctIndex: 2 },
+            { grade: "小三", subject: "自然", type: 'bubble', text: "磁鐵的磁力通常在哪裡最強？", options: ["(A) 中央", "(B) 兩端磁極", "(C) 側面", "(D) 每處都沒有"], correctIndex: 1 },
+            { grade: "小三", subject: "自然", type: 'bubble', text: "植物的根主要功能之一是？", options: ["(A) 吸收水分", "(B) 製造種子", "(C) 開花", "(D) 散播花粉"], correctIndex: 0 },
+            { grade: "小三", subject: "自然", type: 'bubble', text: "水蒸發後會變成？", options: ["(A) 冰塊", "(B) 水蒸氣", "(C) 石頭", "(D) 泥土"], correctIndex: 1 },
+            { grade: "小三", subject: "社會", type: 'bubble', text: "指南針的指針通常指向？", options: ["(A) 南北方向", "(B) 東西方向", "(C) 天空", "(D) 地下"], correctIndex: 0 },
+            { grade: "小三", subject: "社會", type: 'bubble', text: "社區裡提供看病服務的地方是？", options: ["(A) 圖書館", "(B) 診所", "(C) 郵局", "(D) 車站"], correctIndex: 1 },
+            { grade: "小三", subject: "英文", type: 'bubble', text: "Apple 的中文是？", options: ["(A) 香蕉", "(B) 蘋果", "(C) 橘子", "(D) 葡萄"], correctIndex: 1 },
+            { grade: "小三", subject: "數學", type: 'bubble', text: "一盒彩色筆有24枝，平均分給6人，每人？", options: ["(A) 3枝", "(B) 4枝", "(C) 5枝", "(D) 6枝"], correctIndex: 1 },
+            { grade: "小三", subject: "數學", type: 'bubble', text: "3公尺等於幾公分？", options: ["(A) 30", "(B) 300", "(C) 3000", "(D) 3"], correctIndex: 1 },
+            { grade: "小三", subject: "國語", type: 'bubble', text: "「觀察」是指？", options: ["(A) 仔細看並留意", "(B) 大聲唱歌", "(C) 快速奔跑", "(D) 閉眼休息"], correctIndex: 0 },
+            { grade: "小三", subject: "自然", type: 'bubble', text: "影子通常在什麼情況下形成？", options: ["(A) 有光被物體擋住", "(B) 完全黑暗", "(C) 只有聲音", "(D) 水沸騰"], correctIndex: 0 },
+            { grade: "小三", subject: "自然", type: 'bubble', text: "下列哪個是液體？", options: ["(A) 石頭", "(B) 空氣", "(C) 牛奶", "(D) 木頭"], correctIndex: 2 },
+            { grade: "小三", subject: "社會", type: 'bubble', text: "臺灣四面環繞著？", options: ["(A) 沙漠", "(B) 海洋", "(C) 高山", "(D) 森林"], correctIndex: 1 },
+            { grade: "小三", subject: "英文", type: 'bubble', text: "Cat 的中文是？", options: ["(A) 狗", "(B) 貓", "(C) 鳥", "(D) 魚"], correctIndex: 1 },
+            { grade: "小三", subject: "數學", type: 'bubble', text: "一週有幾天？", options: ["(A) 5", "(B) 6", "(C) 7", "(D) 8"], correctIndex: 2 },
+            { grade: "小四", subject: "國語", type: 'bubble', text: "「恍然大悟」表示？", options: ["(A) 突然明白", "(B) 更加困惑", "(C) 非常生氣", "(D) 十分疲倦"], correctIndex: 0 },
+            { grade: "小四", subject: "國語", type: 'bubble', text: "「珍惜」最接近哪個意思？", options: ["(A) 浪費", "(B) 愛護並重視", "(C) 丟棄", "(D) 忽略"], correctIndex: 1 },
+            { grade: "小四", subject: "數學", type: 'bubble', text: "3/8 + 2/8 = ?", options: ["(A) 5/8", "(B) 5/16", "(C) 1/8", "(D) 6/8"], correctIndex: 0 },
+            { grade: "小四", subject: "數學", type: 'bubble', text: "125 × 4 = ?", options: ["(A) 400", "(B) 450", "(C) 500", "(D) 550"], correctIndex: 2 },
+            { grade: "小四", subject: "數學", type: 'bubble', text: "1.5 公尺等於幾公分？", options: ["(A) 15", "(B) 150", "(C) 1500", "(D) 105"], correctIndex: 1 },
+            { grade: "小四", subject: "數學", type: 'bubble', text: "長方形長8公分、寬5公分，周長？", options: ["(A) 13", "(B) 26", "(C) 40", "(D) 80"], correctIndex: 1 },
+            { grade: "小四", subject: "自然", type: 'bubble', text: "聲音主要是由什麼產生？", options: ["(A) 物體振動", "(B) 光線折射", "(C) 水結冰", "(D) 磁力消失"], correctIndex: 0 },
+            { grade: "小四", subject: "自然", type: 'bubble', text: "月亮本身會發光嗎？", options: ["(A) 會，像太陽", "(B) 不會，主要反射太陽光", "(C) 只在白天發光", "(D) 由地球發光"], correctIndex: 1 },
+            { grade: "小四", subject: "自然", type: 'bubble', text: "水沸騰時會產生大量？", options: ["(A) 水蒸氣", "(B) 沙子", "(C) 氧氣泡沫以外的固體", "(D) 冰晶"], correctIndex: 0 },
+            { grade: "小四", subject: "社會", type: 'bubble', text: "臺灣本島最南端位於哪個縣？", options: ["(A) 屏東縣", "(B) 宜蘭縣", "(C) 新竹縣", "(D) 臺北市"], correctIndex: 0 },
+            { grade: "小四", subject: "社會", type: 'bubble', text: "早期人們常利用河流做什麼？", options: ["(A) 灌溉和交通", "(B) 製造塑膠", "(C) 發電以外不作他用", "(D) 阻止植物生長"], correctIndex: 0 },
+            { grade: "小四", subject: "英文", type: 'bubble', text: "What is the opposite of hot?", options: ["(A) warm", "(B) cold", "(C) tall", "(D) fast"], correctIndex: 1 },
+            { grade: "小四", subject: "數學", type: 'bubble', text: "9 × 12 = ?", options: ["(A) 98", "(B) 108", "(C) 118", "(D) 128"], correctIndex: 1 },
+            { grade: "小四", subject: "數學", type: 'bubble', text: "720 ÷ 9 = ?", options: ["(A) 70", "(B) 80", "(C) 90", "(D) 100"], correctIndex: 1 },
+            { grade: "小四", subject: "國語", type: 'bubble', text: "「守株待兔」主要提醒人們？", options: ["(A) 不可只靠僥倖等待", "(B) 要多種樹", "(C) 兔子跑得快", "(D) 農夫很勤勞"], correctIndex: 0 },
+            { grade: "小四", subject: "自然", type: 'bubble', text: "人體骨骼的主要功能不包括？", options: ["(A) 支撐身體", "(B) 保護器官", "(C) 協助運動", "(D) 製造陽光"], correctIndex: 3 },
+            { grade: "小四", subject: "自然", type: 'bubble', text: "植物行光合作用主要需要？", options: ["(A) 陽光、水和二氧化碳", "(B) 汽油和鹽", "(C) 砂糖和塑膠", "(D) 月光和石油"], correctIndex: 0 },
+            { grade: "小四", subject: "社會", type: 'bubble', text: "地圖上的比例尺可以表示？", options: ["(A) 實際距離與圖上距離關係", "(B) 人口年齡", "(C) 天氣溫度", "(D) 商品價格"], correctIndex: 0 },
+            { grade: "小四", subject: "英文", type: 'bubble', text: "Book 的複數通常是？", options: ["(A) bookes", "(B) books", "(C) bookies", "(D) book"], correctIndex: 1 },
+            { grade: "小四", subject: "數學", type: 'bubble', text: "直角是幾度？", options: ["(A) 45", "(B) 60", "(C) 90", "(D) 180"], correctIndex: 2 },
+            { grade: "小五", subject: "國語", type: 'bubble', text: "「鍥而不捨」形容？", options: ["(A) 做事持續努力不放棄", "(B) 半途而廢", "(C) 猶豫不決", "(D) 粗心大意"], correctIndex: 0 },
+            { grade: "小五", subject: "國語", type: 'bubble', text: "「一絲不苟」形容做事？", options: ["(A) 非常仔細", "(B) 非常快速", "(C) 隨便應付", "(D) 容易生氣"], correctIndex: 0 },
+            { grade: "小五", subject: "數學", type: 'bubble', text: "3/4 + 1/8 = ?", options: ["(A) 4/12", "(B) 7/8", "(C) 5/8", "(D) 1"], correctIndex: 1 },
+            { grade: "小五", subject: "數學", type: 'bubble', text: "2.4 × 5 = ?", options: ["(A) 10", "(B) 12", "(C) 14", "(D) 15"], correctIndex: 1 },
+            { grade: "小五", subject: "數學", type: 'bubble', text: "長方體有幾個面？", options: ["(A) 4", "(B) 6", "(C) 8", "(D) 12"], correctIndex: 1 },
+            { grade: "小五", subject: "數學", type: 'bubble', text: "平均數是把總和除以？", options: ["(A) 最大值", "(B) 資料個數", "(C) 最小值", "(D) 2"], correctIndex: 1 },
+            { grade: "小五", subject: "自然", type: 'bubble', text: "植物光合作用會吸收？", options: ["(A) 氧氣", "(B) 二氧化碳", "(C) 氮氣", "(D) 氫氣"], correctIndex: 1 },
+            { grade: "小五", subject: "自然", type: 'bubble', text: "食物鏈中，能自行製造養分的通常是？", options: ["(A) 生產者", "(B) 消費者", "(C) 分解者", "(D) 掠食者"], correctIndex: 0 },
+            { grade: "小五", subject: "自然", type: 'bubble', text: "地球自轉一圈約需？", options: ["(A) 12小時", "(B) 24小時", "(C) 30天", "(D) 365天"], correctIndex: 1 },
+            { grade: "小五", subject: "社會", type: 'bubble', text: "臺灣中央山脈大致呈什麼走向？", options: ["(A) 南北", "(B) 東西", "(C) 西北東南", "(D) 環狀"], correctIndex: 0 },
+            { grade: "小五", subject: "社會", type: 'bubble', text: "民主社會中，人民可以透過選舉？", options: ["(A) 選出民意代表", "(B) 決定日出時間", "(C) 改變季節", "(D) 控制地震"], correctIndex: 0 },
+            { grade: "小五", subject: "英文", type: 'bubble', text: "Which is a fruit?", options: ["(A) Carrot", "(B) Apple", "(C) Bread", "(D) Milk"], correctIndex: 1 },
+            { grade: "小五", subject: "數學", type: 'bubble', text: "15% 的 200 是多少？", options: ["(A) 15", "(B) 20", "(C) 30", "(D) 45"], correctIndex: 2 },
+            { grade: "小五", subject: "數學", type: 'bubble', text: "半徑5公分的圓，直徑是？", options: ["(A) 5", "(B) 10", "(C) 15", "(D) 25"], correctIndex: 1 },
+            { grade: "小五", subject: "國語", type: 'bubble', text: "「因地制宜」是指？", options: ["(A) 依照地方情況採取適當方法", "(B) 完全不改變", "(C) 只看別人做法", "(D) 不考慮環境"], correctIndex: 0 },
+            { grade: "小五", subject: "自然", type: 'bubble', text: "電路要形成通路，通常需要？", options: ["(A) 電池、導線和完整迴路", "(B) 只有塑膠", "(C) 只有磁鐵", "(D) 只有燈泡外殼"], correctIndex: 0 },
+            { grade: "小五", subject: "自然", type: 'bubble', text: "人體吸入氧氣主要透過？", options: ["(A) 肺", "(B) 胃", "(C) 肝臟", "(D) 腎臟"], correctIndex: 0 },
+            { grade: "小五", subject: "社會", type: 'bubble', text: "臺灣主要使用的官方語言是？", options: ["(A) 繁體中文", "(B) 拉丁文", "(C) 俄文", "(D) 阿拉伯文"], correctIndex: 0 },
+            { grade: "小五", subject: "英文", type: 'bubble', text: "The plural of child is?", options: ["(A) childs", "(B) children", "(C) childes", "(D) childrens"], correctIndex: 1 },
+            { grade: "小五", subject: "數學", type: 'bubble', text: "3.6 ÷ 0.6 = ?", options: ["(A) 0.6", "(B) 6", "(C) 60", "(D) 600"], correctIndex: 1 },
+            { grade: "小六", subject: "國語", type: 'bubble', text: "「按部就班」的意思是？", options: ["(A) 按照次序逐步進行", "(B) 隨意改變", "(C) 急著求成", "(D) 完全停止"], correctIndex: 0 },
+            { grade: "小六", subject: "國語", type: 'bubble', text: "「集思廣益」是指？", options: ["(A) 集合大家想法得到更多益處", "(B) 只聽一個人", "(C) 避免討論", "(D) 各做各的"], correctIndex: 0 },
+            { grade: "小六", subject: "數學", type: 'bubble', text: "半徑10公分的圓周長約為？（π取3.14）", options: ["(A) 31.4", "(B) 62.8", "(C) 314", "(D) 15.7"], correctIndex: 1 },
+            { grade: "小六", subject: "數學", type: 'bubble', text: "比值 3:5，前項是12時，後項是？", options: ["(A) 15", "(B) 18", "(C) 20", "(D) 24"], correctIndex: 2 },
+            { grade: "小六", subject: "數學", type: 'bubble', text: "一件商品打八折，原價500元，售價？", options: ["(A) 300", "(B) 350", "(C) 400", "(D) 450"], correctIndex: 2 },
+            { grade: "小六", subject: "數學", type: 'bubble', text: "1.2 ÷ 0.3 = ?", options: ["(A) 0.4", "(B) 4", "(C) 40", "(D) 400"], correctIndex: 1 },
+            { grade: "小六", subject: "自然", type: 'bubble', text: "月食發生時，位置關係通常是？", options: ["(A) 地球在太陽和月球之間", "(B) 月球在太陽和地球之間", "(C) 太陽在地球和月球之間", "(D) 三者無關"], correctIndex: 0 },
+            { grade: "小六", subject: "自然", type: 'bubble', text: "人體血液循環主要由哪個器官推動？", options: ["(A) 肺", "(B) 心臟", "(C) 胃", "(D) 腦"], correctIndex: 1 },
+            { grade: "小六", subject: "自然", type: 'bubble', text: "酸性溶液常使藍色石蕊試紙變成？", options: ["(A) 紅色", "(B) 藍色", "(C) 綠色", "(D) 黑色"], correctIndex: 0 },
+            { grade: "小六", subject: "社會", type: 'bubble', text: "臺灣的中央政府五院不包含？", options: ["(A) 行政院", "(B) 立法院", "(C) 司法法院", "(D) 教育院"], correctIndex: 3 },
+            { grade: "小六", subject: "社會", type: 'bubble', text: "地震規模主要描述？", options: ["(A) 地震釋放能量大小", "(B) 某地感受到的晃動程度", "(C) 風速", "(D) 雨量"], correctIndex: 0 },
+            { grade: "小六", subject: "英文", type: 'bubble', text: "Choose the correct sentence.", options: ["(A) She go to school.", "(B) She goes to school.", "(C) She going school.", "(D) She gone school."], correctIndex: 1 },
+            { grade: "小六", subject: "數學", type: 'bubble', text: "長方體長4、寬3、高2，體積？", options: ["(A) 9", "(B) 12", "(C) 24", "(D) 36"], correctIndex: 2 },
+            { grade: "小六", subject: "數學", type: 'bubble', text: "某數的25%是20，某數是？", options: ["(A) 40", "(B) 60", "(C) 80", "(D) 100"], correctIndex: 2 },
+            { grade: "小六", subject: "國語", type: 'bubble', text: "「未雨綢繆」比喻？", options: ["(A) 事先做好準備", "(B) 下雨才找傘", "(C) 浪費時間", "(D) 臨時慌張"], correctIndex: 0 },
+            { grade: "小六", subject: "自然", type: 'bubble', text: "遺傳訊息主要儲存在細胞的？", options: ["(A) DNA", "(B) 水分", "(C) 脂肪", "(D) 氧氣"], correctIndex: 0 },
+            { grade: "小六", subject: "自然", type: 'bubble', text: "生態系中的分解者常見的是？", options: ["(A) 細菌和真菌", "(B) 老虎和獅子", "(C) 草和樹", "(D) 鷹和蛇"], correctIndex: 0 },
+            { grade: "小六", subject: "社會", type: 'bubble', text: "臺灣位於哪個洲的東側島弧？", options: ["(A) 亞洲", "(B) 歐洲", "(C) 非洲", "(D) 南美洲"], correctIndex: 0 },
+            { grade: "小六", subject: "英文", type: 'bubble', text: "What does “careful” mean?", options: ["(A) 粗心的", "(B) 小心的", "(C) 飢餓的", "(D) 吵鬧的"], correctIndex: 1 },
+            { grade: "小六", subject: "數學", type: 'bubble', text: "三角形內角和為？", options: ["(A) 90度", "(B) 180度", "(C) 270度", "(D) 360度"], correctIndex: 1 },
+            { grade: "國一", subject: "數學", type: 'bubble', text: "(-5) + 8 - (-3) = ?", options: ["(A) 0", "(B) 6", "(C) -6", "(D) 16"], correctIndex: 1 },
+            { grade: "國一", subject: "數學", type: 'bubble', text: "若 x + 7 = 15，x = ?", options: ["(A) 7", "(B) 8", "(C) 9", "(D) 22"], correctIndex: 1 },
+            { grade: "國一", subject: "數學", type: 'bubble', text: "(-4) × 6 = ?", options: ["(A) -24", "(B) -10", "(C) 10", "(D) 24"], correctIndex: 0 },
+            { grade: "國一", subject: "數學", type: 'bubble', text: "24 ÷ (-3) = ?", options: ["(A) -8", "(B) -7", "(C) 7", "(D) 8"], correctIndex: 0 },
+            { grade: "國一", subject: "數學", type: 'bubble', text: "化簡 3a + 2a = ?", options: ["(A) 5", "(B) 5a", "(C) 6a", "(D) a"], correctIndex: 1 },
+            { grade: "國一", subject: "數學", type: 'bubble', text: "一個角為35度，其餘角若與它互補，則為？", options: ["(A) 55", "(B) 145", "(C) 155", "(D) 180"], correctIndex: 1 },
+            { grade: "國一", subject: "生物", type: 'bubble', text: "細胞中進行呼吸作用、產生能量的構造是？", options: ["(A) 葉綠體", "(B) 粒線體", "(C) 細胞壁", "(D) 液胞"], correctIndex: 1 },
+            { grade: "國一", subject: "生物", type: 'bubble', text: "植物細胞通常具有、動物細胞沒有的是？", options: ["(A) 細胞膜", "(B) 細胞質", "(C) 細胞壁", "(D) 細胞核"], correctIndex: 2 },
+            { grade: "國一", subject: "生物", type: 'bubble', text: "顯微鏡觀察時，應先使用哪種倍率？", options: ["(A) 低倍率", "(B) 最高倍率", "(C) 油鏡", "(D) 任意拆鏡"], correctIndex: 0 },
+            { grade: "國一", subject: "理化", type: 'bubble', text: "物質由固態變成液態稱為？", options: ["(A) 凝固", "(B) 熔化", "(C) 汽化", "(D) 昇華"], correctIndex: 1 },
+            { grade: "國一", subject: "地科", type: 'bubble', text: "地球表面大部分被什麼覆蓋？", options: ["(A) 森林", "(B) 海洋", "(C) 沙漠", "(D) 冰原"], correctIndex: 1 },
+            { grade: "國一", subject: "地理", type: 'bubble', text: "等高線越密集，通常代表地勢？", options: ["(A) 越平緩", "(B) 越陡峭", "(C) 越低", "(D) 沒有高度"], correctIndex: 1 },
+            { grade: "國一", subject: "歷史", type: 'bubble', text: "史前時代的人類尚未普遍使用？", options: ["(A) 文字記錄", "(B) 石器", "(C) 火", "(D) 陶器"], correctIndex: 0 },
+            { grade: "國一", subject: "公民", type: 'bubble', text: "法律的主要功能之一是？", options: ["(A) 維護社會秩序與保障權利", "(B) 決定每個人的興趣", "(C) 控制天氣", "(D) 取代所有道德"], correctIndex: 0 },
+            { grade: "國一", subject: "英文", type: 'bubble', text: "Choose the past tense of “go”.", options: ["(A) goed", "(B) went", "(C) gone", "(D) going"], correctIndex: 1 },
+            { grade: "國一", subject: "英文", type: 'bubble', text: "There ___ two books on the desk.", options: ["(A) is", "(B) are", "(C) am", "(D) be"], correctIndex: 1 },
+            { grade: "國一", subject: "數學", type: 'bubble', text: "若 2x = 18，x = ?", options: ["(A) 8", "(B) 9", "(C) 10", "(D) 16"], correctIndex: 1 },
+            { grade: "國一", subject: "數學", type: 'bubble', text: "|-12| 的值是？", options: ["(A) -12", "(B) 0", "(C) 12", "(D) 24"], correctIndex: 2 },
+            { grade: "國一", subject: "生物", type: 'bubble', text: "生物分類中，昆蟲具有幾對足？", options: ["(A) 2", "(B) 3", "(C) 4", "(D) 5"], correctIndex: 1 },
+            { grade: "國一", subject: "地科", type: 'bubble', text: "月球繞行哪個天體公轉？", options: ["(A) 火星", "(B) 地球", "(C) 太陽系外", "(D) 金星"], correctIndex: 1 },
+            { grade: "國二", subject: "數學", type: 'bubble', text: "解方程式 3x - 5 = 16，x = ?", options: ["(A) 5", "(B) 6", "(C) 7", "(D) 8"], correctIndex: 2 },
+            { grade: "國二", subject: "數學", type: 'bubble', text: "(x + 2)(x + 3) 展開為？", options: ["(A) x²+5x+6", "(B) x²+6", "(C) x²+5", "(D) x²-5x+6"], correctIndex: 0 },
+            { grade: "國二", subject: "數學", type: 'bubble', text: "直角三角形兩股為3和4，斜邊為？", options: ["(A) 5", "(B) 6", "(C) 7", "(D) 8"], correctIndex: 0 },
+            { grade: "國二", subject: "數學", type: 'bubble', text: "一次函數 y=2x+1，x=3 時 y = ?", options: ["(A) 5", "(B) 6", "(C) 7", "(D) 8"], correctIndex: 2 },
+            { grade: "國二", subject: "數學", type: 'bubble', text: "方程式 2(x-3)=10 的解為？", options: ["(A) 2", "(B) 5", "(C) 8", "(D) 13"], correctIndex: 2 },
+            { grade: "國二", subject: "數學", type: 'bubble', text: "平行四邊形的對角線會？", options: ["(A) 互相平分", "(B) 互相垂直必然", "(C) 長度必相等", "(D) 都平行"], correctIndex: 0 },
+            { grade: "國二", subject: "理化", type: 'bubble', text: "密度的計算公式是？", options: ["(A) 質量÷體積", "(B) 體積÷質量", "(C) 質量×體積", "(D) 重量+體積"], correctIndex: 0 },
+            { grade: "國二", subject: "理化", type: 'bubble', text: "速度等於？", options: ["(A) 距離÷時間", "(B) 時間÷距離", "(C) 質量÷體積", "(D) 力×面積"], correctIndex: 0 },
+            { grade: "國二", subject: "理化", type: 'bubble', text: "串聯電路中，各處電流通常？", options: ["(A) 相同", "(B) 完全不同", "(C) 必為零", "(D) 只在電池旁存在"], correctIndex: 0 },
+            { grade: "國二", subject: "理化", type: 'bubble', text: "物體受到的合力為零，可能處於？", options: ["(A) 靜止或等速度直線運動", "(B) 一定加速", "(C) 一定轉彎", "(D) 一定爆炸"], correctIndex: 0 },
+            { grade: "國二", subject: "生物", type: 'bubble', text: "人體消化吸收養分的主要場所是？", options: ["(A) 胃", "(B) 小腸", "(C) 食道", "(D) 大腸"], correctIndex: 1 },
+            { grade: "國二", subject: "生物", type: 'bubble', text: "肺泡適合氣體交換的特點是？", options: ["(A) 表面積大且壁薄", "(B) 壁厚且乾燥", "(C) 沒有血管", "(D) 數量很少"], correctIndex: 0 },
+            { grade: "國二", subject: "地科", type: 'bubble', text: "板塊交界處較容易發生？", options: ["(A) 地震和火山活動", "(B) 日食", "(C) 潮汐停止", "(D) 季節消失"], correctIndex: 0 },
+            { grade: "國二", subject: "地理", type: 'bubble', text: "人口密度的計算方式是？", options: ["(A) 人口數÷土地面積", "(B) 土地面積÷人口數", "(C) 出生數÷死亡數", "(D) 人口數×面積"], correctIndex: 0 },
+            { grade: "國二", subject: "歷史", type: 'bubble', text: "工業革命最早開始於？", options: ["(A) 英國", "(B) 日本", "(C) 中國", "(D) 巴西"], correctIndex: 0 },
+            { grade: "國二", subject: "公民", type: 'bubble', text: "民主政治重要原則之一是？", options: ["(A) 權力分立與制衡", "(B) 權力集中於一人", "(C) 取消法律", "(D) 禁止表達意見"], correctIndex: 0 },
+            { grade: "國二", subject: "英文", type: 'bubble', text: "If it rains, we ___ at home.", options: ["(A) stay", "(B) stays", "(C) stayed", "(D) staying"], correctIndex: 0 },
+            { grade: "國二", subject: "英文", type: 'bubble', text: "Which word is an adjective?", options: ["(A) quickly", "(B) happiness", "(C) beautiful", "(D) run"], correctIndex: 2 },
+            { grade: "國二", subject: "數學", type: 'bubble', text: "若兩直線斜率相同且截距不同，兩線？", options: ["(A) 平行", "(B) 垂直", "(C) 重合", "(D) 必相交於原點"], correctIndex: 0 },
+            { grade: "國二", subject: "理化", type: 'bubble', text: "水在標準大氣壓下的沸點約為？", options: ["(A) 0°C", "(B) 50°C", "(C) 100°C", "(D) 150°C"], correctIndex: 2 },
         ];
 
-        function generateRandomExamSheets() {
-            const shuffled = [...QUESTION_BANK].sort(() => Math.random() - 0.5);
-            const selected = shuffled.slice(0, 7);
+        const ALL_GRADES = Object.keys({"小一": 1, "小二": 1, "小三": 1, "小四": 1, "小五": 1, "小六": 1, "國一": 1, "國二": 1});
 
+        function generateRandomExamSheets(selectedGrade = null) {
+            // 單人模式可依年級篩選；雙人與老師模式不傳年級，維持全題庫隨機。
+            const pool = selectedGrade ? QUESTION_BANK.filter(q => q.grade === selectedGrade) : QUESTION_BANK;
+            const shuffled = [...pool].sort(() => Math.random() - 0.5);
+            const selected = shuffled.slice(0, 7);
             const page1 = [
                 { id: 'q1', num: 1, points: 12, ...selected[0] },
                 { id: 'q2', num: 2, points: 12, ...selected[1] },
                 { id: 'q3', num: 3, points: 12, ...selected[2] },
                 { id: 'q4', num: 4, points: 12, ...selected[3] }
             ];
-
             const page2 = [
                 { id: 'q5', num: 5, points: 12, ...selected[4] },
                 { id: 'q6', num: 6, points: 12, ...selected[5] },
                 { id: 'q7', num: 7, points: 14, ...selected[6] },
-                {
-                    id: 'q8',
-                    num: 8,
-                    points: 14,
-                    grade: '考規',
-                    subject: '考生切結',
-                    type: 'signature',
-                    text: '【考場誠信切結】請在下方框內親筆簽名（用原子筆簽名可享 2 倍加分！）'
-                }
+                { id: 'q8', num: 8, points: 14, grade: '考規', subject: '考生切結', type: 'signature', text: '【考場誠信切結】請在下方框內親筆簽名（用原子筆簽名可享 2 倍加分！）' }
             ];
-
             return [page1, page2];
         }
-
         // ==========================================
         // 3. 遊戲核心狀態與文具屬性
         // ==========================================
         const state = {
             isPlaying: false,
             gameMode: 'student', // 'student' | 'teacher' | 'mp_student' | 'mp_teacher'
+            selectedGrade: '小一',
             currentSheet: 0,
             examSheets: generateRandomExamSheets(),
             activeTool: 'mech',
@@ -2091,18 +2244,19 @@
         // ==========================================
         // 5. 啟動遊戲與交卷/發還考卷結算 (單人 & 雙人對戰)
         // ==========================================
-        function launchGameSession(mode, keepPresetSheets = false) {
+        function launchGameSession(mode, keepPresetSheets = false, selectedGrade = null) {
             sfx.init();
             sfx.playClick();
 
             state.gameMode = mode;
+            if (mode === 'student' && selectedGrade) state.selectedGrade = selectedGrade;
             // 小抄只允許單人普通學生考試使用，不出現在老師或雙人模式
             document.getElementById('cheat-sheet-btn').classList.toggle('hidden', mode !== 'student'); // 只在單人普通考試顯示，仍屬於底部道具組
             closeCheatSheetModal();
             state.isPlaying = true;
             state.currentSheet = 0;
             if (!keepPresetSheets) {
-                state.examSheets = generateRandomExamSheets();
+                state.examSheets = generateRandomExamSheets(mode === 'student' ? state.selectedGrade : null);
             }
             state.activeTool = 'mech';
             state.teacherTool = 'redpen';
@@ -2162,7 +2316,7 @@
                     });
                 }
             } else {
-                document.getElementById('mode-badge-text').textContent = mode === 'mp_student' ? '雙人·學生考生' : '學生考試';
+                document.getElementById('mode-badge-text').textContent = mode === 'mp_student' ? '雙人·學生考生（隨機）' : `學生考試·${state.selectedGrade}`;
                 document.getElementById('status-label-text').textContent = '📋 作答狀態';
                 document.getElementById('student-neatness-box').classList.remove('hidden');
                 document.getElementById('mobile-neatness-strip').classList.remove('hidden');
@@ -2253,7 +2407,23 @@
             if (e.key === 'Escape') closeCheatSheetModal();
         });
 
-        document.getElementById('start-student-btn').addEventListener('click', () => launchGameSession('student'));
+        const gradeSelectModal = document.getElementById('grade-select-modal');
+        document.getElementById('start-student-btn').addEventListener('click', () => {
+            gradeSelectModal.classList.remove('hidden');
+            gradeSelectModal.classList.add('flex');
+            document.getElementById('grade-select').value = state.selectedGrade || '小一';
+        });
+        document.getElementById('cancel-grade-btn').addEventListener('click', () => {
+            gradeSelectModal.classList.add('hidden');
+            gradeSelectModal.classList.remove('flex');
+        });
+        document.getElementById('confirm-grade-btn').addEventListener('click', () => {
+            const grade = document.getElementById('grade-select').value;
+            state.selectedGrade = grade;
+            gradeSelectModal.classList.add('hidden');
+            gradeSelectModal.classList.remove('flex');
+            launchGameSession('student', false, grade);
+        });
         document.getElementById('start-teacher-btn').addEventListener('click', () => launchGameSession('teacher'));
 
         function showMultiplayerDuelResult(data) {
@@ -2555,7 +2725,7 @@
                 handleRoomStateUpdate(mp.roomData);
                 return;
             }
-            launchGameSession(state.gameMode);
+            launchGameSession(state.gameMode, false, state.gameMode === 'student' ? state.selectedGrade : null);
         });
 
         function returnToMainMenu() {
