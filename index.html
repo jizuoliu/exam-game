@@ -20,7 +20,6 @@
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: none;
         }
 
         body {
@@ -179,36 +178,41 @@
     <main id="desk-area" class="flex-1 relative flex items-center justify-center p-2 sm:p-4 overflow-hidden">
         
         <!-- 考卷容器 -->
-        <div id="paper-stage" class="exam-paper w-full max-w-[760px] h-full max-h-[540px] rounded-sm p-3 sm:p-5 flex flex-col justify-between overflow-hidden">
+        <div id="paper-stage" class="exam-paper w-full max-w-[760px] h-full max-h-[560px] rounded-sm p-3 sm:p-5 flex flex-col justify-between overflow-hidden">
             
             <!-- 考卷頂部標頭 -->
-            <div class="border-b-2 border-gray-800 pb-2 flex flex-wrap items-center justify-between gap-2 z-10 pointer-events-none">
+            <div class="border-b-2 border-gray-800 pb-1.5 sm:pb-2 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 z-10 pointer-events-none shrink-0">
                 <div>
                     <div class="flex items-center gap-2">
                         <span class="bg-gray-800 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-sm">115學年度第一學期</span>
-                        <h1 class="font-exam font-black text-base sm:text-xl text-gray-900 tracking-wide">國民小學定期評量 — 綜合能力測驗</h1>
+                        <h1 class="font-exam font-black text-sm sm:text-xl text-gray-900 tracking-wide">國民小學定期評量 — 綜合能力測驗</h1>
                     </div>
-                    <p class="text-[11px] sm:text-xs text-gray-600 mt-0.5 font-medium">
-                        ⚠️ 注意：選擇題限用<strong class="text-gray-900 underline">鉛筆/自動筆</strong>畫卡；申論簽名限用<strong class="text-blue-700 underline">原子筆</strong>；橡皮擦屑請<strong class="text-amber-700 underline">滑動撥除</strong>！
+                    <p class="text-[10px] sm:text-xs text-gray-600 mt-0.5 font-medium">
+                        ⚠️ 選擇題限用<strong class="text-gray-900 underline">鉛筆/自動筆</strong>畫卡；申論限用<strong class="text-blue-700 underline">原子筆</strong>；📱手機可<strong class="text-emerald-700 underline">雙指上下滑動</strong>看題！
                     </p>
                 </div>
-                <div class="flex items-center gap-2 text-xs font-exam border border-gray-700 px-2.5 py-1 bg-white/80">
+                <div class="flex items-center gap-2 text-[11px] sm:text-xs font-exam border border-gray-700 px-2 py-0.5 sm:px-2.5 sm:py-1 bg-white/80">
                     <span>班級：六年甲班</span>
                     <span>座號：27</span>
                     <span class="text-red-600 font-bold"><span id="page-num">正面 (第 1 / 2 頁)</span></span>
                 </div>
             </div>
 
-            <!-- 互動題目區 (DOM 結構與畫布疊加層) -->
-            <div id="questions-container" class="relative flex-1 my-2 grid grid-cols-1 sm:grid-cols-2 gap-3 z-10 pointer-events-none">
-                <!-- 題目卡片會由 JS 動態生成 -->
+            <!-- 可垂直捲動的考卷作答區 (包裹題目與對應畫布，手機滑動時筆跡會跟著考卷一起移動) -->
+            <div id="paper-scroll-area" class="relative flex-1 my-1.5 sm:my-2 overflow-y-auto overflow-x-hidden pr-0.5">
+                <div id="paper-scroll-content" class="relative min-h-full flex flex-col">
+                    <!-- 互動題目區 (DOM 結構與畫布疊加層) -->
+                    <div id="questions-container" class="relative flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 z-10 pointer-events-none pb-2">
+                        <!-- 題目卡片會由 JS 動態生成 -->
+                    </div>
+
+                    <!-- 繪圖/筆跡/橡皮擦屑 Canvas 覆蓋整個可捲動作答區 -->
+                    <canvas id="paper-canvas" class="absolute inset-0 w-full h-full z-20" style="touch-action: pinch-zoom pan-y;"></canvas>
+                </div>
             </div>
 
-            <!-- 繪圖/筆跡/橡皮擦屑 Canvas 覆蓋整張考卷 -->
-            <canvas id="paper-canvas" class="absolute inset-0 w-full h-full z-20"></canvas>
-
             <!-- 考卷底部頁碼與換頁按鈕 -->
-            <div class="border-t border-gray-400 pt-1.5 flex items-center justify-between text-xs text-gray-600 z-30">
+            <div class="border-t border-gray-400 pt-1.5 flex items-center justify-between text-xs text-gray-600 z-30 shrink-0">
                 <div class="flex items-center gap-2">
                     <span id="tool-hint-banner" class="font-bold text-gray-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded">
                         💡 目前手持：自動筆（精準畫卡、按太猛會斷芯）
@@ -685,6 +689,8 @@
         const canvas = document.getElementById('paper-canvas');
         const ctx = canvas.getContext('2d');
         const paperStage = document.getElementById('paper-stage');
+        const paperScrollArea = document.getElementById('paper-scroll-area');
+        const paperScrollContent = document.getElementById('paper-scroll-content');
         const questionsContainer = document.getElementById('questions-container');
         const customCursor = document.getElementById('custom-cursor');
 
@@ -692,7 +698,7 @@
          * 動態調整高解析度畫布尺寸並重新計算作答框位置
          */
         function resizeCanvas() {
-            const rect = paperStage.getBoundingClientRect();
+            const rect = paperScrollContent.getBoundingClientRect();
             const dpr = window.devicePixelRatio || 1;
             canvas.width = Math.max(1, Math.floor(rect.width * dpr));
             canvas.height = Math.max(1, Math.floor(rect.height * dpr));
@@ -702,11 +708,11 @@
         }
 
         /**
-         * 重新計算每個選擇題圓圈與申論作圖框相對於考卷畫布的碰撞區
+         * 重新計算每個選擇題圓圈與申論作圖框相對於可捲動作答畫布的碰撞區
          */
         function recalculateTargetRects() {
-            const stageRect = paperStage.getBoundingClientRect();
-            if (stageRect.width === 0 || stageRect.height === 0) return;
+            const contentRect = paperScrollContent.getBoundingClientRect();
+            if (contentRect.width === 0 || contentRect.height === 0) return;
 
             state.activeQuestions.forEach((qObj, idx) => {
                 if (qObj.type === 'choice') {
@@ -715,10 +721,10 @@
                         if (!el) return null;
                         const r = el.getBoundingClientRect();
                         return {
-                            left: r.left - stageRect.left - 6,
-                            right: r.right - stageRect.left + 6,
-                            top: r.top - stageRect.top - 6,
-                            bottom: r.bottom - stageRect.top + 6
+                            left: r.left - contentRect.left - 6,
+                            right: r.right - contentRect.left + 6,
+                            top: r.top - contentRect.top - 6,
+                            bottom: r.bottom - contentRect.top + 6
                         };
                     });
                 } else {
@@ -726,10 +732,10 @@
                     if (el) {
                         const r = el.getBoundingClientRect();
                         qObj.targetRect = {
-                            left: r.left - stageRect.left,
-                            right: r.right - stageRect.left,
-                            top: r.top - stageRect.top,
-                            bottom: r.bottom - stageRect.top
+                            left: r.left - contentRect.left,
+                            right: r.right - contentRect.left,
+                            top: r.top - contentRect.top,
+                            bottom: r.bottom - contentRect.top
                         };
                     }
                 }
@@ -737,9 +743,10 @@
         }
 
         window.addEventListener('resize', resizeCanvas);
+        paperScrollArea.addEventListener('scroll', recalculateTargetRects);
 
         /**
-         * 洗牌工具函式 (Fisher-Yates Shuffle)
+         * 陣列洗牌 (Fisher-Yates Shuffle)
          */
         function shuffleArray(arr) {
             const copy = [...arr];
@@ -831,10 +838,10 @@
 
                 questionsContainer.appendChild(card);
             });
-
-            // 計算每個選項圈圈與作圖框相對於 canvas 的座標
+            // 計算每個選項圈圈與作圖框相對於 canvas 的座標，並同步調整捲動區高度
             requestAnimationFrame(() => {
-                recalculateTargetRects();
+                paperScrollArea.scrollTop = 0;
+                resizeCanvas();
             });
 
             const sideLabel = state.pageNum === 1 ? '正面 (第 1 / 2 頁)' : '背面 (第 2 / 2 頁)';
@@ -863,7 +870,7 @@
             toast.style.top = `${y}px`;
             toast.style.color = color;
             toast.textContent = text;
-            paperStage.appendChild(toast);
+            paperScrollContent.appendChild(toast);
             setTimeout(() => toast.remove(), 920);
         }
 
@@ -1055,7 +1062,7 @@
          * 重繪畫布上的所有筆跡與橡皮擦屑
          */
         function redrawCanvas() {
-            const rect = paperStage.getBoundingClientRect();
+            const rect = paperScrollContent.getBoundingClientRect();
             ctx.clearRect(0, 0, rect.width, rect.height);
 
             // 1. 繪製所有筆跡
@@ -1112,25 +1119,33 @@
 
         // 滑鼠進入/離開考卷舞台顯示自訂文具游標
         paperStage.addEventListener('pointerenter', (e) => {
-            if (e.pointerType === 'mouse') {
+            if (e.pointerType === 'mouse' && state.currentTool !== 'leadbox') {
                 customCursor.style.display = 'block';
-                updateCustomCursorIcon();
             }
         });
-
         paperStage.addEventListener('pointerleave', () => {
             customCursor.style.display = 'none';
-            state.isPointerDown = false;
-            if (state.currentStroke) {
-                state.strokes.push(state.currentStroke);
-                state.currentStroke = null;
-            }
         });
+
+        // 追蹤目前螢幕上有幾根手指觸控（兩根手指時自動切換為上下捲動考卷模式）
+        const activeTouchPointers = new Set();
 
         // 開始落筆 / 擦拭 / 撥擦屑
         canvas.addEventListener('pointerdown', (e) => {
             if (!state.isPlaying) return;
-            e.preventDefault();
+            if (e.pointerType === 'touch') {
+                activeTouchPointers.add(e.pointerId);
+                // 若偵測到兩根手指同時觸控，取消畫筆並讓瀏覽器執行上下捲動
+                if (activeTouchPointers.size >= 2) {
+                    state.isPointerDown = false;
+                    if (state.currentStroke) {
+                        state.strokes.push(state.currentStroke);
+                        state.currentStroke = null;
+                        redrawCanvas();
+                    }
+                    return;
+                }
+            }
             sfx.init();
 
             const pos = getCanvasCoords(e);
@@ -1189,6 +1204,9 @@
 
         // 移動書寫 / 擦拭 / 撥橡皮擦屑
         canvas.addEventListener('pointermove', (e) => {
+            if (e.pointerType === 'touch' && activeTouchPointers.size >= 2) {
+                return;
+            }
             const pos = getCanvasCoords(e);
             if (customCursor.style.display === 'block') {
                 customCursor.style.left = `${pos.clientX}px`;
@@ -1196,7 +1214,7 @@
             }
 
             if (!state.isPlaying || !state.isPointerDown || !state.lastPointer) return;
-            e.preventDefault();
+            if (e.cancelable) e.preventDefault();
 
             const now = performance.now();
             const dx = pos.x - state.lastPointer.x;
@@ -1318,7 +1336,10 @@
         });
 
         // 結束筆劃
-        window.addEventListener('pointerup', () => {
+        window.addEventListener('pointerup', (e) => {
+            if (e && e.pointerType === 'touch') {
+                activeTouchPointers.delete(e.pointerId);
+            }
             if (state.isPointerDown) {
                 state.isPointerDown = false;
                 if (state.currentStroke) {
@@ -1326,6 +1347,17 @@
                     state.currentStroke = null;
                 }
                 redrawCanvas();
+            }
+        });
+
+        window.addEventListener('pointercancel', (e) => {
+            if (e && e.pointerType === 'touch') {
+                activeTouchPointers.delete(e.pointerId);
+            }
+            state.isPointerDown = false;
+            if (state.currentStroke) {
+                state.strokes.push(state.currentStroke);
+                state.currentStroke = null;
             }
         });
 
