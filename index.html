@@ -875,7 +875,8 @@
             };
             if (mqttClient && mqttClient.connected && currentRoomTopic) {
                 try {
-                    mqttClient.publish(currentRoomTopic, JSON.stringify(packet), { qos: 0, retain: false });
+                    const subTopic = currentRoomTopic + (mp.isHost ? '/host' : '/guest');
+                    mqttClient.publish(subTopic, JSON.stringify(packet), { qos: 1, retain: true });
                 } catch (e) {}
             }
             if (localBroadcast) {
@@ -889,7 +890,7 @@
             if (msg.senderIsHost === mp.isHost) return;
 
             if (msg.type === 'GUEST_JOINED' && mp.isHost && mp.roomData) {
-                if (!mp.roomData.guestName) {
+                if (mp.roomData.guestName !== msg.guestName) {
                     sfx.playClick();
                 }
                 mp.roomData.guestName = msg.guestName || '挑戰好友';
@@ -921,29 +922,31 @@
 
             try {
                 mqttClient = mqtt.connect(brokerUrl, {
-                    clientId: 'exam_' + Math.random().toString(16).slice(2, 10),
+                    clientId: 'exam_' + (mp.isHost ? 'H_' : 'G_') + Math.random().toString(16).slice(2, 10),
                     clean: true,
                     connectTimeout: 5000,
-                    reconnectPeriod: 2000
+                    reconnectPeriod: 1500
                 });
 
                 mqttClient.on('connect', () => {
-                    mqttClient.subscribe(currentRoomTopic, { qos: 0 }, (err) => {
+                    mqttClient.subscribe(currentRoomTopic + '/#', { qos: 1 }, (err) => {
                         if (err) return;
                         if (mp.isHost) {
-                            document.getElementById('mp-lobby-status-msg').textContent = '🌐 全球即時連線已就緒！快把上方 6 碼邀請碼傳給好朋友加入！';
+                            document.getElementById('mp-lobby-status-msg').textContent = '🌐 房間已成功建立並上線！快把上方 6 碼邀請碼傳給好友！';
                             sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
                         } else {
-                            document.getElementById('mp-lobby-status-msg').textContent = '📡 已連上伺服器，正在呼叫房主加入房間...';
+                            document.getElementById('mp-lobby-status-msg').textContent = '📡 已連上伺服器，正在讀取房間資訊...';
                             sendRoomMessage({ type: 'GUEST_JOINED', guestName: mp.playerName });
                         }
                     });
                 });
 
                 mqttClient.on('message', (topic, messageBuffer) => {
-                    if (topic !== currentRoomTopic) return;
+                    if (!topic.startsWith(currentRoomTopic)) return;
                     try {
-                        const parsed = JSON.parse(messageBuffer.toString());
+                        const rawStr = messageBuffer.toString();
+                        if (!rawStr) return;
+                        const parsed = JSON.parse(rawStr);
                         processIncomingRoomPacket(parsed);
                     } catch (e) {}
                 });
@@ -1149,6 +1152,665 @@
         let currentScratchStroke = null;
         const questionsContainer = document.getElementById('questions-container');
         const customCursor = document.getElementById('custom-cursor');
+        const teacherScoreInput = document.getElementById('teacher-score-input');
+
+        const SIM_STUDENT_NAMES = [
+            { cls: '六年甲班 08號 陳小皮', desc: '粗心大意、常看錯選項' },
+            { cls: '六年乙班 15號 林乖乖', desc: '字跡工整、偶爾算錯一題' },
+            { cls: '五年丙班 21號 張調皮', desc: '偷用原子筆畫選擇題卡' }
+        ];
+
+        function isTeacherRole() {
+            return state.gameMode === 'teacher' || state.gameMode === 'mp_teacher';
+        }
+
+        function showFloatingToast(text, x, y, color = '#1e293b') {
+            const el = document.createElement('div');
+            el.className = 'floating-toast text-xs sm:text-sm';
+            el.style.left = `${Math.max(60, Math.min(window.innerWidth - 60, x))}px`;
+            el.style.top = `${Math.max(60, y)}px`;
+            el.style.color = color;
+            el.textContent = text;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 920);
+        }
+
+        function toggleScratchpad(forceState) {
+            state.isScratchpadOpen = typeof forceState === 'boolean' ? forceState : !state.isScratchpadOpen;
+            if (state.isScratchpadOpen) {
+                scratchpadModal.classList.remove('hidden');
+                const toolNames = { pencil: '鉛筆', mech: '自動筆', pen: '原子筆', eraser: '橡皮擦' };
+                document.getElementById('scratchpad-tool-label').textContent = `目前用筆：${toolNames[state.activeTool] || '自動筆'}`;
+                requestAnimationFrame(resizeScratchpadCanvas);
+            } else {
+                scratchpadModal.classList.add('hidden');
+            }
+        }
+
+        function resizeScratchpadCanvas() {
+            const body = document.getElementById('scratchpad-body');
+            if (!body) return;
+            scratchpadCanvas.width = body.clientWidth || 300;
+            scratchpadCanvas.height = body.clientHeight || 200;
+            redrawScratchCanvas();
+        }
+
+        function redrawScratchCanvas() {
+            scratchCtx.clearRect(0, 0, scratchpadCanvas.width, scratchpadCanvas.height);
+            scratchCtx.lineCap = 'round';
+            scratchCtx.lineJoin = 'round';
+            scratchStrokes.forEach(st => {
+                if (st.points.length < 2) return;
+                scratchCtx.beginPath();
+                scratchCtx.strokeStyle = st.color;
+                scratchCtx.lineWidth = st.width;
+                scratchCtx.moveTo(st.points[0].x, st.points[0].y);
+                for (let i = 1; i < st.points.length; i++) {
+                    scratchCtx.lineTo(st.points[i].x, st.points[i].y);
+                }
+                scratchCtx.stroke();
+            });
+        }
+
+        function renderQuestions() {
+            const questions = state.examSheets[state.currentSheet] || [];
+            document.getElementById('page-num').textContent = state.currentSheet === 0 ? '正面 (第 1 / 2 頁)' : '背面 (第 2 / 2 頁)';
+            document.getElementById('next-sheet-btn').textContent = state.currentSheet === 0 ? '翻到背面 (第 2 頁) ➔' : '⬅ 翻回正面 (第 1 頁)';
+            questionsContainer.innerHTML = '';
+
+            questions.forEach(q => {
+                const card = document.createElement('div');
+                card.className = 'bg-white/85 border border-gray-400 rounded p-2.5 sm:p-3 flex flex-col justify-between shadow-sm';
+
+                let optionsHtml = '';
+                if (q.type === 'bubble') {
+                    optionsHtml = `<div class="grid grid-cols-2 gap-1.5 mt-2">
+                        ${q.options.map((opt, idx) => `
+                            <div class="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-800">
+                                <span data-qid="${q.id}" data-opt-idx="${idx}" class="answer-target inline-flex items-center justify-center w-6 h-6 rounded-full border-2 border-gray-700 text-[11px] font-bold bg-white shrink-0">${['A','B','C','D'][idx]}</span>
+                                <span>${opt.replace(/^\([A-D]\)\s*/, '')}</span>
+                            </div>
+                        `).join('')}
+                    </div>`;
+                } else {
+                    optionsHtml = `<div class="mt-2">
+                        <div data-qid="${q.id}" data-opt-idx="0" class="answer-target w-full h-12 border-2 border-dashed border-gray-600 rounded bg-amber-50/50 flex items-center justify-center text-xs text-gray-400 font-exam">
+                            請在此框內親筆簽名
+                        </div>
+                    </div>`;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-1 mb-1">
+                            <span class="font-exam font-black text-xs sm:text-sm text-gray-900">
+                                第 ${q.num} 題 <span class="bg-indigo-100 text-indigo-800 text-[10px] px-1.5 py-0.5 rounded font-sans">${q.grade}·${q.subject}</span>
+                            </span>
+                            <span class="text-[10px] sm:text-xs font-bold text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">【${q.points}分】</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-gray-800 font-medium leading-snug">${q.text}</p>
+                    </div>
+                    ${optionsHtml}
+                `;
+                questionsContainer.appendChild(card);
+            });
+
+            requestAnimationFrame(() => {
+                recalculateTargetRects();
+                redrawCanvas();
+            });
+        }
+
+        function recalculateTargetRects() {
+            const contentRect = paperScrollContent.getBoundingClientRect();
+            const targets = questionsContainer.querySelectorAll('.answer-target');
+            state.targetRects = Array.from(targets).map(el => {
+                const r = el.getBoundingClientRect();
+                return {
+                    qid: el.dataset.qid,
+                    optIdx: parseInt(el.dataset.optIdx, 10),
+                    x: r.left - contentRect.left,
+                    y: r.top - contentRect.top,
+                    w: r.width,
+                    h: r.height
+                };
+            });
+        }
+
+        function resizeCanvas() {
+            const w = paperScrollContent.clientWidth || 680;
+            const h = paperScrollContent.clientHeight || 400;
+            canvas.width = w;
+            canvas.height = h;
+            recalculateTargetRects();
+            redrawCanvas();
+        }
+
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            (state.strokes || []).forEach(st => {
+                if (!st.points || st.points.length < 1) return;
+                ctx.beginPath();
+                ctx.strokeStyle = st.color;
+                ctx.lineWidth = st.width;
+                ctx.moveTo(st.points[0].x, st.points[0].y);
+                if (st.points.length === 1) {
+                    ctx.lineTo(st.points[0].x + 0.5, st.points[0].y + 0.5);
+                } else {
+                    for (let i = 1; i < st.points.length; i++) {
+                        ctx.lineTo(st.points[i].x, st.points[i].y);
+                    }
+                }
+                ctx.stroke();
+            });
+
+            (state.crumbs || []).forEach(c => {
+                ctx.fillStyle = '#94a3b8';
+                ctx.beginPath();
+                ctx.ellipse(c.x, c.y, c.r * 1.4, c.r * 0.8, c.angle || 0, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            (state.stamps || []).forEach(sp => {
+                ctx.save();
+                ctx.translate(sp.x, sp.y);
+                ctx.rotate(-0.18);
+                ctx.strokeStyle = '#dc2626';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(-34, -18, 68, 36);
+                ctx.strokeStyle = 'rgba(220, 38, 38, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(-30, -14, 60, 28);
+                ctx.fillStyle = '#dc2626';
+                ctx.font = '900 16px "Noto Serif TC", serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('劉老師', 0, 1);
+                ctx.restore();
+            });
+        }
+
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function checkStrokeHitsTarget(stroke) {
+            if (isTeacherRole() || !stroke || stroke.tool === 'eraser' || stroke.tool === 'hand') return;
+            const questions = state.examSheets[state.currentSheet] || [];
+            for (const pt of stroke.points) {
+                for (const t of state.targetRects) {
+                    if (pt.x >= t.x - 4 && pt.x <= t.x + t.w + 4 && pt.y >= t.y - 4 && pt.y <= t.y + t.h + 4) {
+                        const q = questions.find(item => item.id === t.qid);
+                        if (q) {
+                            state.sheetAnswers[state.currentSheet][q.id] = {
+                                answered: true,
+                                chosenIdx: t.optIdx,
+                                pen: stroke.tool
+                            };
+                            updateAnsweredCounterUI();
+                        }
+                    }
+                }
+            }
+        }
+
+        function populateSimulatedStudentSheet(sheetIdx, presetAnswers = null) {
+            const questions = state.examSheets[sheetIdx] || [];
+            const strokes = [];
+            const ansMap = presetAnswers ? { ...presetAnswers } : {};
+
+            const tempContainer = document.createElement('div');
+            const isTargetSheet = state.currentSheet === sheetIdx;
+            if (isTargetSheet) {
+                recalculateTargetRects();
+            }
+
+            questions.forEach((q, idx) => {
+                let chosenIdx = q.correctIndex ?? 0;
+                let penType = 'mech';
+
+                if (presetAnswers && presetAnswers[q.id]) {
+                    if (!presetAnswers[q.id].answered) return;
+                    chosenIdx = presetAnswers[q.id].chosenIdx;
+                    penType = presetAnswers[q.id].pen || 'mech';
+                } else {
+                    const makeMistake = Math.random() < 0.35;
+                    if (q.type === 'bubble') {
+                        if (makeMistake) {
+                            chosenIdx = (q.correctIndex + 1) % 4;
+                        }
+                        if (state.simStudentInfo?.cls.includes('調皮') && idx === 1) {
+                            penType = 'pen';
+                        }
+                    } else {
+                        penType = Math.random() < 0.6 ? 'pen' : 'mech';
+                    }
+                    ansMap[q.id] = { answered: true, chosenIdx, pen: penType };
+                }
+
+                const strokeColor = penType === 'pen' ? '#1d4ed8' : '#334155';
+                const target = state.targetRects.find(t => t.qid === q.id && t.optIdx === chosenIdx);
+                const cx = target ? target.x + target.w / 2 : (idx % 2 === 0 ? 60 : 380);
+                const cy = target ? target.y + target.h / 2 : (95 + Math.floor(idx / 2) * 145);
+
+                const pts = [];
+                if (q.type === 'bubble') {
+                    for (let a = 0; a <= Math.PI * 2; a += 0.5) {
+                        pts.push({ x: cx + Math.cos(a) * 7, y: cy + Math.sin(a) * 7 });
+                    }
+                } else {
+                    for (let dx = -30; dx <= 30; dx += 6) {
+                        pts.push({ x: cx + dx, y: cy + Math.sin(dx * 0.25) * 6 });
+                    }
+                }
+                strokes.push({ tool: penType, color: strokeColor, width: penType === 'pen' ? 2.2 : 3.2, points: pts });
+            });
+
+            state.sheetAnswers[sheetIdx] = ansMap;
+            state.sheetStrokes[sheetIdx] = strokes;
+            if (isTargetSheet) {
+                state.strokes = strokes;
+                redrawCanvas();
+            }
+            updateAnsweredCounterUI();
+        }
+
+        function calculateStudentExpectedScore() {
+            let total = 0;
+            for (let s = 0; s < 2; s++) {
+                const questions = state.examSheets[s] || [];
+                const ansMap = state.sheetAnswers[s] || {};
+                questions.forEach(q => {
+                    const ans = ansMap[q.id];
+                    if (!ans || !ans.answered) return;
+                    if (q.type === 'bubble') {
+                        if (ans.chosenIdx === q.correctIndex) {
+                            total += ans.pen === 'pen' ? Math.floor(q.points / 2) : q.points;
+                        }
+                    } else if (q.type === 'signature') {
+                        total += ans.pen === 'pen' ? q.points * 2 : q.points;
+                    }
+                });
+            }
+            return Math.min(100, total);
+        }
+
+        function updateStationeryUI() {
+            document.getElementById('pencil-sharp-text').textContent = `${Math.round(state.pencilSharpness)}%`;
+            document.getElementById('pencil-sharp-bar').style.width = `${state.pencilSharpness}%`;
+            document.getElementById('mech-lead-text').textContent = `${Math.round(state.mechLeadExposed)}%`;
+            document.getElementById('mech-lead-bar').style.width = `${state.mechLeadExposed}%`;
+            document.getElementById('lead-sticks-count').textContent = `${state.mechLeadSticks}根`;
+            document.getElementById('eraser-size-text').textContent = `${Math.round(state.eraserRemaining)}%`;
+            document.getElementById('eraser-size-bar').style.width = `${state.eraserRemaining}%`;
+
+            document.querySelectorAll('#student-toolbar .tool-slot').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tool === state.activeTool);
+            });
+            document.querySelectorAll('#teacher-toolbar .tool-slot').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.ttool === state.teacherTool);
+            });
+        }
+
+        function updateAnsweredCounterUI() {
+            if (isTeacherRole()) {
+                const marks = [...(state.sheetStrokes[0] || []), ...(state.sheetStrokes[1] || [])]
+                    .filter(s => s.tool === 'redpen' || s.tool === 'bluepen').length;
+                const stamps = (state.sheetStamps[0]?.length || 0) + (state.sheetStamps[1]?.length || 0);
+                document.getElementById('answered-count-display').textContent = `批改 ${marks} 筆 · 章 ${stamps} 枚`;
+                return;
+            }
+            let count = 0;
+            for (let s = 0; s < 2; s++) {
+                const map = state.sheetAnswers[s] || {};
+                count += Object.values(map).filter(v => v && v.answered).length;
+            }
+            document.getElementById('answered-count-display').textContent = `已寫 ${count} / 8 題`;
+        }
+
+        function updateNeatnessUI() {
+            const totalCrumbs = (state.sheetCrumbs[0]?.length || 0) + (state.sheetCrumbs[1]?.length || 0);
+            const pct = Math.max(0, Math.min(100, 100 - totalCrumbs * 4));
+            document.getElementById('neatness-text').textContent = `${pct}%`;
+            document.getElementById('neatness-bar').style.width = `${pct}%`;
+            document.getElementById('neatness-text-mobile').textContent = `${pct}%`;
+            document.getElementById('neatness-bar-mobile').style.width = `${pct}%`;
+            document.getElementById('crumb-warning-mobile').classList.toggle('hidden', totalCrumbs <= 12);
+        }
+
+        function updateToolHintBanner() {
+            const banner = document.getElementById('tool-hint-banner');
+            if (isTeacherRole()) {
+                const map = {
+                    redpen: '🖍️ 目前手持：紅筆（在答對的題目上打大勾勾 ✓）',
+                    bluepen: '🖊️ 目前手持：藍筆（圈出學生寫錯或違規用筆的題目）',
+                    stamp: '💮 目前手持：劉老師印章（點擊考卷空白處蓋下【劉老師】印章！）',
+                    eraser: '🧴 目前手持：立可帶（塗掉批改錯誤的紅藍筆跡）',
+                    hand: '✋ 目前手持：小手（單指上下滑動檢視考卷上下半部）'
+                };
+                banner.textContent = map[state.teacherTool] || '';
+                return;
+            }
+            const map = {
+                pencil: '✏️ 目前手持：2B 鉛筆（畫卡專用，寫太鈍記得點鉛筆削尖！）',
+                mech: '🖊️ 目前手持：0.5 自動筆（精準畫卡，寫太急容易斷芯！）',
+                leadbox: '📦 筆芯盒：已幫自動筆補充新筆芯！',
+                pen: '🖋️ 目前手持：藍色原子筆（第8題簽名享 2 倍分，畫選擇題會扣分且不可擦！）',
+                eraser: '🧽 目前手持：橡皮擦（可擦掉鉛筆/自動筆，記得用小手撥掉擦屑！）',
+                hand: '✋ 目前手持：小手（單指上下滑動考卷看題目，並可撥掉橡皮擦屑！）',
+                scratchpad: '🗒️ 計算草稿紙已打開！'
+            };
+            banner.textContent = map[state.activeTool] || '';
+        }
+
+        function updateCursorAppearance() {
+            const active = isTeacherRole() ? state.teacherTool : state.activeTool;
+            const icons = {
+                pencil: '✏️', mech: '🖊️', pen: '🖋️', eraser: '🧽', hand: '✋',
+                redpen: '🖍️', bluepen: '🖊️', stamp: '💮'
+            };
+            customCursor.innerHTML = `<span class="text-2xl">${icons[active] || '🖊️'}</span>`;
+        }
+
+        // 考卷畫布指標繪圖與滑動事件
+        canvas.addEventListener('pointerdown', (e) => {
+            if (!state.isPlaying) return;
+            canvas.setPointerCapture(e.pointerId);
+            const pt = getCanvasCoords(e);
+            const isTeacher = isTeacherRole();
+            const active = isTeacher ? state.teacherTool : state.activeTool;
+
+            if (active === 'hand') {
+                state.isDraggingScroll = true;
+                state.scrollStartY = e.clientY;
+                state.scrollStartTop = paperScrollArea.scrollTop;
+                return;
+            }
+
+            if (isTeacher && active === 'stamp') {
+                sfx.playStamp();
+                state.stamps.push({ x: pt.x, y: pt.y });
+                state.sheetStamps[state.currentSheet] = state.stamps;
+                updateAnsweredCounterUI();
+                redrawCanvas();
+                showFloatingToast('💮 蓋章：劉老師', e.clientX, e.clientY - 20, '#dc2626');
+                return;
+            }
+
+            if (!isTeacher && active === 'mech' && state.mechLeadExposed <= 0) {
+                sfx.playSnap();
+                showFloatingToast('⚠️ 自動筆沒芯了！點下方「自動筆按壓」或「筆芯盒」！', e.clientX, e.clientY - 20, '#dc2626');
+                return;
+            }
+
+            let color = '#1e293b';
+            let width = 3;
+            if (isTeacher) {
+                color = active === 'redpen' ? '#dc2626' : active === 'bluepen' ? '#2563eb' : '#ffffff';
+                width = active === 'eraser' ? 18 : 3.5;
+            } else {
+                if (active === 'pencil') {
+                    color = '#334155';
+                    width = state.pencilSharpness > 40 ? 3.2 : 5.5;
+                } else if (active === 'mech') {
+                    color = '#0f172a';
+                    width = 2.2;
+                } else if (active === 'pen') {
+                    color = '#1d4ed8';
+                    width = 2.2;
+                } else if (active === 'eraser') {
+                    width = 20;
+                }
+            }
+
+            state.currentStroke = { tool: active, color, width, points: [pt] };
+            state.lastPointerPos = pt;
+            state.lastPointerTime = performance.now();
+        });
+
+        canvas.addEventListener('pointermove', (e) => {
+            customCursor.style.left = `${e.clientX}px`;
+            customCursor.style.top = `${e.clientY}px`;
+
+            if (!state.isPlaying) return;
+            const isTeacher = isTeacherRole();
+            const active = isTeacher ? state.teacherTool : state.activeTool;
+
+            if (active === 'hand' && state.isDraggingScroll) {
+                const dy = e.clientY - state.scrollStartY;
+                paperScrollArea.scrollTop = state.scrollStartTop - dy;
+                const pt = getCanvasCoords(e);
+                const beforeLen = state.crumbs.length;
+                state.crumbs = state.crumbs.filter(c => Math.hypot(c.x - pt.x, c.y - pt.y) > 26);
+                if (state.crumbs.length !== beforeLen) {
+                    state.sheetCrumbs[state.currentSheet] = state.crumbs;
+                    updateNeatnessUI();
+                    redrawCanvas();
+                }
+                return;
+            }
+
+            if (!state.currentStroke) return;
+            const pt = getCanvasCoords(e);
+            const now = performance.now();
+            const dist = state.lastPointerPos ? Math.hypot(pt.x - state.lastPointerPos.x, pt.y - state.lastPointerPos.y) : 0;
+            const dt = Math.max(1, now - state.lastPointerTime);
+
+            if (active === 'eraser') {
+                sfx.playScratch(true);
+                state.strokes = state.strokes.filter(st => {
+                    if (!isTeacher && st.tool === 'pen') return true;
+                    return !st.points.some(p => Math.hypot(p.x - pt.x, p.y - pt.y) < 16);
+                });
+                state.sheetStrokes[state.currentSheet] = state.strokes;
+                if (!isTeacher && dist > 3 && Math.random() < 0.25) {
+                    state.crumbs.push({ x: pt.x + (Math.random() - 0.5) * 14, y: pt.y + (Math.random() - 0.5) * 14, r: 2 + Math.random() * 2, angle: Math.random() * 3 });
+                    state.sheetCrumbs[state.currentSheet] = state.crumbs;
+                    state.eraserRemaining = Math.max(10, state.eraserRemaining - 0.2);
+                    updateNeatnessUI();
+                    updateStationeryUI();
+                }
+                redrawCanvas();
+                return;
+            }
+
+            if (!isTeacher && active === 'mech' && dist / dt > 2.4 && state.mechLeadExposed > 0) {
+                state.mechLeadExposed = 0;
+                state.currentStroke = null;
+                sfx.playSnap();
+                paperStage.classList.remove('shake-paper');
+                void paperStage.offsetWidth;
+                paperStage.classList.add('shake-paper');
+                updateStationeryUI();
+                showFloatingToast('💥 寫太急斷芯了！快按自動筆出芯！', e.clientX, e.clientY - 24, '#dc2626');
+                return;
+            }
+
+            sfx.playScratch(false);
+            state.currentStroke.points.push(pt);
+            state.lastPointerPos = pt;
+            state.lastPointerTime = now;
+
+            if (!isTeacher) {
+                if (active === 'pencil') {
+                    state.pencilSharpness = Math.max(15, state.pencilSharpness - dist * 0.04);
+                    updateStationeryUI();
+                } else if (active === 'mech') {
+                    state.mechLeadExposed = Math.max(0, state.mechLeadExposed - dist * 0.06);
+                    updateStationeryUI();
+                }
+            }
+
+            redrawCanvas();
+            // 即時繪製目前正在畫的一筆
+            ctx.beginPath();
+            ctx.strokeStyle = state.currentStroke.color;
+            ctx.lineWidth = state.currentStroke.width;
+            const pts = state.currentStroke.points;
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+            ctx.stroke();
+        });
+
+        function endCanvasPointer() {
+            state.isDraggingScroll = false;
+            if (state.currentStroke) {
+                if (state.currentStroke.tool !== 'eraser') {
+                    state.strokes.push(state.currentStroke);
+                    state.sheetStrokes[state.currentSheet] = state.strokes;
+                    checkStrokeHitsTarget(state.currentStroke);
+                    updateAnsweredCounterUI();
+                }
+                state.currentStroke = null;
+                redrawCanvas();
+            }
+        }
+        canvas.addEventListener('pointerup', endCanvasPointer);
+        canvas.addEventListener('pointercancel', endCanvasPointer);
+
+        // 草稿紙畫布繪圖
+        scratchpadCanvas.addEventListener('pointerdown', (e) => {
+            scratchpadCanvas.setPointerCapture(e.pointerId);
+            const rect = scratchpadCanvas.getBoundingClientRect();
+            const pt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            const isEraser = state.activeTool === 'eraser';
+            currentScratchStroke = {
+                tool: state.activeTool,
+                color: state.activeTool === 'pen' ? '#1d4ed8' : '#334155',
+                width: isEraser ? 20 : 2.5,
+                points: [pt]
+            };
+        });
+        scratchpadCanvas.addEventListener('pointermove', (e) => {
+            if (!currentScratchStroke) return;
+            const rect = scratchpadCanvas.getBoundingClientRect();
+            const pt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            if (currentScratchStroke.tool === 'eraser') {
+                scratchStrokes = scratchStrokes.filter(st => !st.points.some(p => Math.hypot(p.x - pt.x, p.y - pt.y) < 16));
+                redrawScratchCanvas();
+                return;
+            }
+            currentScratchStroke.points.push(pt);
+            redrawScratchCanvas();
+            scratchCtx.beginPath();
+            scratchCtx.strokeStyle = currentScratchStroke.color;
+            scratchCtx.lineWidth = currentScratchStroke.width;
+            scratchCtx.moveTo(currentScratchStroke.points[0].x, currentScratchStroke.points[0].y);
+            for (let i = 1; i < currentScratchStroke.points.length; i++) scratchCtx.lineTo(currentScratchStroke.points[i].x, currentScratchStroke.points[i].y);
+            scratchCtx.stroke();
+        });
+        scratchpadCanvas.addEventListener('pointerup', () => {
+            if (currentScratchStroke && currentScratchStroke.tool !== 'eraser') {
+                scratchStrokes.push(currentScratchStroke);
+            }
+            currentScratchStroke = null;
+        });
+
+        // 文具與翻頁按鈕綁定
+        document.querySelectorAll('#student-toolbar .tool-slot').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const t = btn.dataset.tool;
+                if (t === 'scratchpad') {
+                    sfx.playClick();
+                    toggleScratchpad();
+                    return;
+                }
+                if (t === 'leadbox') {
+                    if (state.mechLeadSticks > 0 && state.mechLeadExposed < 100) {
+                        state.mechLeadSticks--;
+                        state.mechLeadExposed = 100;
+                        state.activeTool = 'mech';
+                        sfx.playRefill();
+                        showFloatingToast('📦 已裝入新筆芯！', window.innerWidth / 2, window.innerHeight - 120, '#0284c7');
+                    } else {
+                        sfx.playClick();
+                        showFloatingToast('📦 筆芯存量充足！', window.innerWidth / 2, window.innerHeight - 120, '#475569');
+                    }
+                    updateStationeryUI();
+                    updateToolHintBanner();
+                    updateCursorAppearance();
+                    return;
+                }
+                if (t === 'pencil' && state.activeTool === 'pencil') {
+                    state.pencilSharpness = 100;
+                    sfx.playSharpen();
+                    showFloatingToast('✏️ 鉛筆已削得超尖！', window.innerWidth / 2, window.innerHeight - 120, '#b45309');
+                } else if (t === 'mech' && state.activeTool === 'mech') {
+                    if (state.mechLeadExposed < 100 && state.mechLeadSticks > 0) {
+                        if (state.mechLeadExposed <= 0) state.mechLeadSticks--;
+                        state.mechLeadExposed = Math.min(100, state.mechLeadExposed + 50);
+                        sfx.playClick();
+                        showFloatingToast('🖊️ 喀擦！按出新筆芯', window.innerWidth / 2, window.innerHeight - 120, '#0284c7');
+                    } else {
+                        sfx.playClick();
+                    }
+                } else {
+                    sfx.playClick();
+                }
+                state.activeTool = t;
+                updateStationeryUI();
+                updateToolHintBanner();
+                updateCursorAppearance();
+            });
+        });
+
+        document.querySelectorAll('#teacher-toolbar .tool-slot').forEach(btn => {
+            btn.addEventListener('click', () => {
+                sfx.playClick();
+                state.teacherTool = btn.dataset.ttool;
+                updateStationeryUI();
+                updateToolHintBanner();
+                updateCursorAppearance();
+            });
+        });
+
+        document.getElementById('next-sheet-btn').addEventListener('click', () => {
+            sfx.playClick();
+            state.sheetStrokes[state.currentSheet] = state.strokes;
+            state.sheetCrumbs[state.currentSheet] = state.crumbs;
+            state.sheetStamps[state.currentSheet] = state.stamps;
+
+            state.currentSheet = state.currentSheet === 0 ? 1 : 0;
+            state.strokes = state.sheetStrokes[state.currentSheet] || [];
+            state.crumbs = state.sheetCrumbs[state.currentSheet] || [];
+            state.stamps = state.sheetStamps[state.currentSheet] || [];
+            paperScrollArea.scrollTop = 0;
+            renderQuestions();
+        });
+
+        document.getElementById('clear-scratchpad-btn').addEventListener('click', () => {
+            sfx.playClick();
+            scratchStrokes = [];
+            redrawScratchCanvas();
+        });
+        document.getElementById('close-scratchpad-btn').addEventListener('click', () => {
+            sfx.playClick();
+            toggleScratchpad(false);
+        });
+        document.getElementById('auto-calc-score-btn').addEventListener('click', () => {
+            sfx.playClick();
+            const score = mp.roomData && state.gameMode === 'mp_teacher'
+                ? (mp.roomData.studentExpectedScore ?? calculateStudentExpectedScore())
+                : calculateStudentExpectedScore();
+            teacherScoreInput.value = score;
+            document.getElementById('teacher-score-badge').textContent = `得分：${score}`;
+            showFloatingToast(`💯 已自動結算：${score} 分`, window.innerWidth / 2, 90, '#dc2626');
+        });
+        teacherScoreInput.addEventListener('input', () => {
+            const v = teacherScoreInput.value;
+            document.getElementById('teacher-score-badge').textContent = v !== '' ? `得分：${v}` : '得分：--';
+        });
+        paperScrollArea.addEventListener('scroll', recalculateTargetRects);
+        window.addEventListener('resize', resizeCanvas);
+        paperStage.addEventListener('pointerenter', () => { customCursor.style.display = 'block'; });
+        paperStage.addEventListener('pointerleave', () => { customCursor.style.display = 'none'; });
 
         // ==========================================
         // 11. 雙人好友連線房間建立與邀請碼備援綁定
