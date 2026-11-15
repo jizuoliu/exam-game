@@ -1186,6 +1186,15 @@
                     </div>`;
                 }
 
+                // 老師閱卷時，在每題下方顯示標準答案；學生模式絕不顯示，避免洩題。
+                let teacherAnswerHtml = '';
+                if (isTeacherRole()) {
+                    const answerText = q.type === 'bubble'
+                        ? `${['A', 'B', 'C', 'D'][q.correctIndex] || '?'}：${(q.options?.[q.correctIndex] || '').replace(/^\([A-D]\)\s*/, '')}`
+                        : '完成簽名即可';
+                    teacherAnswerHtml = `<div class="mt-2 rounded border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] sm:text-xs font-bold text-emerald-800">✅ 標準答案：${answerText}</div>`;
+                }
+
                 card.innerHTML = `
                     <div>
                         <div class="flex items-center justify-between gap-1 mb-1">
@@ -1197,6 +1206,7 @@
                         <p class="text-xs sm:text-sm text-gray-800 font-medium leading-snug">${q.text}</p>
                     </div>
                     ${optionsHtml}
+                    ${teacherAnswerHtml}
                 `;
                 questionsContainer.appendChild(card);
             });
@@ -1208,17 +1218,21 @@
         }
 
         function recalculateTargetRects() {
-            const contentRect = paperScrollContent.getBoundingClientRect();
+            // 以畫布本身的實際螢幕位置作為座標原點，避免捲動區、縮放或
+            // 手機版高度重新排版後，答案圈選位置和畫布座標產生垂直偏移。
+            const canvasRect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / Math.max(1, canvasRect.width);
+            const scaleY = canvas.height / Math.max(1, canvasRect.height);
             const targets = questionsContainer.querySelectorAll('.answer-target');
             state.targetRects = Array.from(targets).map(el => {
                 const r = el.getBoundingClientRect();
                 return {
                     qid: el.dataset.qid,
                     optIdx: parseInt(el.dataset.optIdx, 10),
-                    x: r.left - contentRect.left,
-                    y: r.top - contentRect.top,
-                    w: r.width,
-                    h: r.height
+                    x: (r.left - canvasRect.left) * scaleX,
+                    y: (r.top - canvasRect.top) * scaleY,
+                    w: r.width * scaleX,
+                    h: r.height * scaleY
                 };
             });
         }
@@ -1282,8 +1296,8 @@
         function getCanvasCoords(e) {
             const rect = canvas.getBoundingClientRect();
             return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
+                x: (e.clientX - rect.left) * (canvas.width / Math.max(1, rect.width)),
+                y: (e.clientY - rect.top) * (canvas.height / Math.max(1, rect.height))
             };
         }
 
