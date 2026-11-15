@@ -119,6 +119,82 @@
                 cursor: none;
             }
         }
+
+        /* 手機窄螢幕：讓題目與答案完整留在考卷內 */
+        @media (max-width: 640px) {
+            #desk-area {
+                min-height: 0;
+                padding: 6px;
+                align-items: stretch;
+            }
+            #paper-stage {
+                width: 100%;
+                max-width: none;
+                max-height: none;
+                min-height: 0;
+                height: 100%;
+                padding: 8px;
+                overflow: hidden;
+            }
+            #paper-scroll-area {
+                min-height: 0;
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
+            }
+            #paper-scroll-content {
+                min-width: 0;
+                width: 100%;
+            }
+            #questions-container {
+                grid-template-columns: minmax(0, 1fr) !important;
+                gap: 8px;
+                min-width: 0;
+            }
+            #questions-container > div {
+                min-width: 0;
+                width: 100%;
+                padding: 8px;
+                justify-content: flex-start;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+            }
+            .answer-options-grid {
+                grid-template-columns: minmax(0, 1fr) !important;
+                gap: 6px;
+                min-width: 0;
+            }
+            .answer-option-row {
+                min-width: 0;
+                width: 100%;
+                align-items: flex-start;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+            }
+            .answer-option-text {
+                min-width: 0;
+                flex: 1 1 0%;
+                white-space: normal;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+                line-height: 1.4;
+            }
+            .teacher-answer-mobile {
+                min-width: 0;
+                white-space: normal;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+                line-height: 1.45;
+            }
+        }
+
+        @media (max-height: 700px) and (max-width: 640px) {
+            #paper-stage { padding: 6px; }
+            #paper-stage > .border-b-2 { padding-bottom: 4px; }
+            #paper-stage > .border-t { padding-top: 4px; }
+            #student-toolbar { padding-top: 4px; padding-bottom: 4px; }
+            #student-toolbar .tool-slot { padding: 4px; }
+            #student-toolbar .tool-slot svg { width: 24px; height: 24px; }
+        }
     </style>
 </head>
 <body>
@@ -1170,11 +1246,11 @@
 
                 let optionsHtml = '';
                 if (q.type === 'bubble') {
-                    optionsHtml = `<div class="grid grid-cols-2 gap-1.5 mt-2">
+                    optionsHtml = `<div class="answer-options-grid grid grid-cols-2 gap-1.5 mt-2">
                         ${q.options.map((opt, idx) => `
-                            <div class="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-800">
+                            <div class="answer-option-row flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-800">
                                 <span data-qid="${q.id}" data-opt-idx="${idx}" class="answer-target inline-flex items-center justify-center w-6 h-6 rounded-full border-2 border-gray-700 text-[11px] font-bold bg-white shrink-0">${['A','B','C','D'][idx]}</span>
-                                <span>${opt.replace(/^\([A-D]\)\s*/, '')}</span>
+                                <span class="answer-option-text">${opt.replace(/^\([A-D]\)\s*/, '')}</span>
                             </div>
                         `).join('')}
                     </div>`;
@@ -1192,7 +1268,7 @@
                     const answerText = q.type === 'bubble'
                         ? `${['A', 'B', 'C', 'D'][q.correctIndex] || '?'}：${(q.options?.[q.correctIndex] || '').replace(/^\([A-D]\)\s*/, '')}`
                         : '完成簽名即可';
-                    teacherAnswerHtml = `<div class="mt-2 rounded border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] sm:text-xs font-bold text-emerald-800">✅ 標準答案：${answerText}</div>`;
+                    teacherAnswerHtml = `<div class="teacher-answer-mobile mt-2 rounded border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] sm:text-xs font-bold text-emerald-800">✅ 標準答案：${answerText}</div>`;
                 }
 
                 card.innerHTML = `
