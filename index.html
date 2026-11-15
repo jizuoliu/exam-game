@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>模擬考生存戰：文具大作戰</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -683,13 +683,18 @@
 
     <script>
         // ==========================================
-        // 0. 雙人即時連線引擎 (多重備用信令節點 + 跨分頁即時通道 + 同機接力)
+        // 0. 雙人全球即時連線引擎 (WSS 雲端訊息通道 + 跨分頁即時同步 + 同機接力)
         // ==========================================
-        const PEER_PREFIX = 'tw-exam-room-2026-';
-        let peerInstance = null;
-        let peerConn = null;
+        const ROOM_TOPIC_PREFIX = 'tw-exam-game-2026/rooms/';
+        const MQTT_BROKERS = [
+            'wss://broker.emqx.io:8084/mqtt',
+            'wss://broker.hivemq.com:8884/mqtt'
+        ];
+        let mqttClient = null;
+        let currentRoomTopic = null;
         let localBroadcast = null;
         let roomConnectTimer = null;
+        let hostSyncInterval = null;
 
         // ==========================================
         // 1. Web Audio API 擬真文具音效引擎
@@ -820,85 +825,221 @@
         const sfx = new SoundEffects();
 
         // ==========================================
-        // 2. 國小一年級 ～ 國中一年級 跨學齡綜合題庫 (36 題)
+        // 11. 雙人好友連線房間建立、邀請碼加入與雲端 WSS 即時同步
         // ==========================================
-        const QUESTION_BANK_BUBBLE = [
-            // 國小一年級
-            { grade: "小一", subject: "國語", text: "「一、二、三、四、五」的下一數字是哪一個國字？", options: ["(A) 六", "(B) 七", "(C) 八", "(D) 九"], correctIndex: 0 },
-            { grade: "小一", subject: "數學", text: "小明有 7 顆蘋果，吃掉了 3 顆，還剩下幾顆？", options: ["(A) 3 顆", "(B) 4 顆", "(C) 5 顆", "(D) 10 顆"], correctIndex: 1 },
-            { grade: "小一", subject: "生活", text: "過馬路時看到行人號誌燈亮「紅燈」，應該怎麼做？", options: ["(A) 快速衝過去", "(B) 停下來等待綠燈", "(C) 閉著眼睛走", "(D) 在馬路中間玩"], correctIndex: 1 },
-            { grade: "小一", subject: "數學", text: "時鐘的短針指在 3，長針指在 12，現在是幾點鐘？", options: ["(A) 12 點", "(B) 6 點", "(C) 3 點", "(D) 9 點"], correctIndex: 2 },
-            // 國小二年級
-            { grade: "小二", subject: "數學", text: "九九乘法表中，「6 × 7」等於多少？", options: ["(A) 36", "(B) 42", "(C) 48", "(D) 54"], correctIndex: 1 },
-            { grade: "小二", subject: "國語", text: "「晴天」的相反詞是哪一個？", options: ["(A) 白天", "(B) 雨天", "(C) 春天", "(D) 昨天"], correctIndex: 1 },
-            { grade: "小二", subject: "數學", text: "1 個 50 元硬幣和 3 個 10 元硬幣，合起來共有多少元？", options: ["(A) 60 元", "(B) 70 元", "(C) 80 元", "(D) 90 元"], correctIndex: 2 },
-            { grade: "小二", subject: "生活", text: "下列哪一種動物是會下蛋的鳥類？", options: ["(A) 小狗", "(B) 企鵝", "(C) 兔子", "(D) 貓咪"], correctIndex: 1 },
-            // 國小三年級
-            { grade: "小三", subject: "數學", text: "把一塊蛋糕平分成 8 份，吃了其中的 3 份，是吃了幾分之幾？", options: ["(A) 3/8", "(B) 8/3", "(C) 3/5", "(D) 1/8"], correctIndex: 0 },
-            { grade: "小三", subject: "自然", text: "磁鐵的哪兩個磁極互相靠近時會「相吸」？", options: ["(A) N 極與 N 極", "(B) S 極與 S 極", "(C) N 極與 S 極", "(D) 完全不會吸"], correctIndex: 2 },
-            { grade: "小三", subject: "國語", text: "成語「畫蛇添足」是用來比喻什麼行為？", options: ["(A) 畫畫技巧很高超", "(B) 多此一舉反而弄巧成拙", "(C) 非常勤勞工作", "(D) 跑得跟蛇一樣快"], correctIndex: 1 },
-            { grade: "小三", subject: "數學", text: "1 公斤等於多少公克？", options: ["(A) 10 公克", "(B) 100 公克", "(C) 1000 公克", "(D) 10000 公克"], correctIndex: 2 },
-            // 國小四年級
-            { grade: "小四", subject: "社會", text: "臺灣第一長河，也是流經彰化與雲林交界的是哪一條河流？", options: ["(A) 淡水河", "(B) 濁水溪", "(C) 高屏溪", "(D) 秀姑巒溪"], correctIndex: 1 },
-            { grade: "小四", subject: "自然", text: "月亮從「新月 → 上弦月 → 滿月 → 下弦月」循環一次大約需要幾天？", options: ["(A) 7 天", "(B) 15 天", "(C) 29~30 天", "(D) 365 天"], correctIndex: 2 },
-            { grade: "小四", subject: "數學", text: "直角三角形中，除了 90 度的直角之外，另外兩個角加起來是幾度？", options: ["(A) 45 度", "(B) 90 度", "(C) 180 度", "(D) 360 度"], correctIndex: 1 },
-            { grade: "小四", subject: "國語", text: "「破釜沉舟」這個成語故事與哪一位歷史人物有關？", options: ["(A) 項羽", "(B) 諸葛亮", "(C) 孔子", "(D) 李白"], correctIndex: 0 },
-            // 國小五年級
-            { grade: "小五", subject: "數學", text: "1 到 20 的整數中，最小的質數是多少？", options: ["(A) 1", "(B) 2", "(C) 3", "(D) 5"], correctIndex: 1 },
-            { grade: "小五", subject: "自然", text: "植物行「光合作用」製造養分時，會吸收空氣中的哪一種氣體？", options: ["(A) 氧氣", "(B) 氮氣", "(C) 二氧化碳", "(D) 氫氣"], correctIndex: 2 },
-            { grade: "小五", subject: "社會", text: "清代台灣第一位巡撫，並積極推動鐵路與現代化建設的是誰？", options: ["(A) 鄭成功", "(B) 劉銘傳", "(C) 沈葆楨", "(D) 施琅"], correctIndex: 1 },
-            { grade: "小五", subject: "數學", text: "平行四邊形的底是 12 公分、高是 5 公分，面積是多少平方公分？", options: ["(A) 17", "(B) 30", "(C) 60", "(D) 120"], correctIndex: 2 },
-            // 國小六年級
-            { grade: "小六", subject: "國語", text: "下列哪一個成語的用字完全正確，沒有錯別字？", options: ["(A) 迫不急待", "(B) 走頭無路", "(C) 再接再厲", "(D) 穿流不息"], correctIndex: 2 },
-            { grade: "小六", subject: "數學", text: "一個圓的直徑是 10 公分，請問它的圓周長大約是多少公分？", options: ["(A) 15.7 公分", "(B) 31.4 公分", "(C) 78.5 公分", "(D) 314 公分"], correctIndex: 1 },
-            { grade: "小六", subject: "自然", text: "我們平常使用的「指北針」，指針能夠指向南北方是利用什麼原理？", options: ["(A) 地球磁場", "(B) 大氣壓力", "(C) 靜電感應", "(D) 萬有引力"], correctIndex: 0 },
-            { grade: "小六", subject: "社會", text: "台灣位於哪兩個板塊的交界處，因此地震活動相當頻繁？", options: ["(A) 歐亞板塊與太平洋板塊", "(B) 歐亞板塊與菲律賓海板塊", "(C) 印澳板塊與太平洋板塊", "(D) 北美板塊與歐亞板塊"], correctIndex: 1 },
-            // 國中一年級
-            { grade: "國一", subject: "數學", text: "計算 (-8) + 3 × (-4) 的值等於多少？", options: ["(A) 20", "(B) -20", "(C) -4", "(D) 4"], correctIndex: 1 },
-            { grade: "國一", subject: "生物", text: "植物細胞比動物細胞多了哪兩種構造，使其具有固定形狀並能行光合作用？", options: ["(A) 細胞核與粒線體", "(B) 細胞壁與葉綠體", "(C) 細胞膜與液胞", "(D) 細胞質與核糖體"], correctIndex: 1 },
-            { grade: "國一", subject: "國文", text: "「學而時習之，不亦說乎」中的「說」字，通假為哪一個字？", options: ["(A) 悅", "(B) 閱", "(C) 脫", "(D) 稅"], correctIndex: 0 },
-            { grade: "國一", subject: "數學", text: "解一元一次方程式：3x - 5 = 16，請問 x 等於多少？", options: ["(A) 3", "(B) 5", "(C) 7", "(D) 21"], correctIndex: 2 },
-            { grade: "國一", subject: "地理", text: "在經緯度座標系統中，通過英國格林威治天文台的零度經線稱為什麼？", options: ["(A) 赤道", "(B) 北回歸線", "(C) 本初經線", "(D) 國際換日線"], correctIndex: 2 },
-            { grade: "國一", subject: "公民", text: "我國《民法》規定，自然人滿幾歲即為「完全行為能力人」？", options: ["(A) 16 歲", "(B) 18 歲", "(C) 20 歲", "(D) 22 歲"], correctIndex: 1 }
-        ];
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
 
-        const QUESTION_BANK_SIGNATURE = [
-            { grade: "全學齡", subject: "考生切結", text: "請在下方框內親筆「簽名」確認遵守考場規則（用原子筆簽名可獲得 2 倍加分！）" },
-            { grade: "全學齡", subject: "榮譽承諾", text: "請在下方框內親筆「簽名」發誓絕不偷看隔壁同學考卷（原子筆簽名得 2 倍分！）" },
-            { grade: "全學齡", subject: "家長與學生", text: "請在下方框內「簽名」確認已檢查正反面所有題目（原子筆簽名得 2 倍分！）" },
-            { grade: "全學齡", subject: "畢業紀念", text: "請在下方框內「簽名」留下你的專屬考場帥氣簽名（原子筆簽名得 2 倍分！）" }
-        ];
+        function getPlayerNickname() {
+            const val = document.getElementById('mp-player-name-input').value.trim();
+            return val || (mp.isHost ? '房主同學' : '挑戰好友');
+        }
 
-        function generateRandomExamSheets() {
-            const shuffledBubbles = [...QUESTION_BANK_BUBBLE].sort(() => Math.random() - 0.5);
-            const selectedBubbles = shuffledBubbles.slice(0, 7);
-            const selectedSig = QUESTION_BANK_SIGNATURE[Math.floor(Math.random() * QUESTION_BANK_SIGNATURE.length)];
+        function cleanupMultiplayerListener() {
+            if (roomConnectTimer) {
+                clearTimeout(roomConnectTimer);
+                roomConnectTimer = null;
+            }
+            if (hostSyncInterval) {
+                clearInterval(hostSyncInterval);
+                hostSyncInterval = null;
+            }
+            if (localBroadcast) {
+                try { localBroadcast.close(); } catch (e) {}
+                localBroadcast = null;
+            }
+            if (mqttClient) {
+                try { mqttClient.end(true); } catch (e) {}
+                mqttClient = null;
+            }
+            currentRoomTopic = null;
+            mp.roomCode = null;
+            mp.roomData = null;
+            mp.isLocalRelay = false;
+            mp.hasStartedMatch = false;
+            mp.hasShownGradingView = false;
+            mp.hasShownFinalResult = false;
+        }
 
-            const page1 = selectedBubbles.slice(0, 4).map((q, idx) => ({
-                id: `q${idx + 1}`,
-                num: idx + 1,
-                type: 'bubble',
-                points: 12,
-                ...q
-            }));
+        function sendRoomMessage(payload) {
+            const packet = {
+                ...payload,
+                senderIsHost: mp.isHost,
+                ts: Date.now()
+            };
+            if (mqttClient && mqttClient.connected && currentRoomTopic) {
+                try {
+                    mqttClient.publish(currentRoomTopic, JSON.stringify(packet), { qos: 0, retain: false });
+                } catch (e) {}
+            }
+            if (localBroadcast) {
+                try { localBroadcast.postMessage(packet); } catch (e) {}
+            }
+        }
 
-            const page2Bubbles = selectedBubbles.slice(4, 7).map((q, idx) => ({
-                id: `q${idx + 5}`,
-                num: idx + 5,
-                type: 'bubble',
-                points: idx === 2 ? 14 : 12,
-                ...q
-            }));
+        function processIncomingRoomPacket(msg) {
+            if (!msg || !msg.type) return;
+            // 忽略自己發出的廣播封包
+            if (msg.senderIsHost === mp.isHost) return;
 
-            const page2 = [
-                ...page2Bubbles,
-                {
-                    id: 'q8',
-                    num: 8,
-                    type: 'signature',
-                    points: 14,
-                    ...selectedSig
+            if (msg.type === 'GUEST_JOINED' && mp.isHost && mp.roomData) {
+                if (!mp.roomData.guestName) {
+                    sfx.playClick();
                 }
+                mp.roomData.guestName = msg.guestName || '挑戰好友';
+                handleRoomStateUpdate(mp.roomData);
+                sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
+            } else if (msg.type === 'SYNC_STATE' && msg.roomData && !mp.isHost) {
+                if (roomConnectTimer) {
+                    clearTimeout(roomConnectTimer);
+                    roomConnectTimer = null;
+                }
+                mp.roomData = msg.roomData;
+                handleRoomStateUpdate(mp.roomData);
+            }
+        }
+
+        function initLocalChannel(code) {
+            if (typeof BroadcastChannel === 'undefined') return;
+            localBroadcast = new BroadcastChannel('tw-exam-local-' + code);
+            localBroadcast.onmessage = (event) => processIncomingRoomPacket(event.data);
+        }
+
+        function connectCloudRoomChannel(code, brokerIndex = 0) {
+            if (typeof mqtt === 'undefined') {
+                document.getElementById('mp-lobby-status-msg').textContent = '⚠️ 無法載入連線模組，可點「📱 同機雙人接力」立即開玩！';
+                return;
+            }
+            const brokerUrl = MQTT_BROKERS[brokerIndex % MQTT_BROKERS.length];
+            currentRoomTopic = ROOM_TOPIC_PREFIX + code;
+
+            try {
+                mqttClient = mqtt.connect(brokerUrl, {
+                    clientId: 'exam_' + Math.random().toString(16).slice(2, 10),
+                    clean: true,
+                    connectTimeout: 5000,
+                    reconnectPeriod: 2000
+                });
+
+                mqttClient.on('connect', () => {
+                    mqttClient.subscribe(currentRoomTopic, { qos: 0 }, (err) => {
+                        if (err) return;
+                        if (mp.isHost) {
+                            document.getElementById('mp-lobby-status-msg').textContent = '🌐 全球即時連線已就緒！快把上方 6 碼邀請碼傳給好朋友加入！';
+                            sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
+                        } else {
+                            document.getElementById('mp-lobby-status-msg').textContent = '📡 已連上伺服器，正在呼叫房主加入房間...';
+                            sendRoomMessage({ type: 'GUEST_JOINED', guestName: mp.playerName });
+                        }
+                    });
+                });
+
+                mqttClient.on('message', (topic, messageBuffer) => {
+                    if (topic !== currentRoomTopic) return;
+                    try {
+                        const parsed = JSON.parse(messageBuffer.toString());
+                        processIncomingRoomPacket(parsed);
+                    } catch (e) {}
+                });
+
+                mqttClient.on('error', () => {
+                    if (brokerIndex + 1 < MQTT_BROKERS.length) {
+                        try { mqttClient.end(true); } catch (e) {}
+                        connectCloudRoomChannel(code, brokerIndex + 1);
+                    }
+                });
+            } catch (e) {
+                document.getElementById('mp-lobby-status-msg').textContent = '💡 若網路限制外部連線，可點下方「📱 同機雙人接力」直接輪流對戰！';
+            }
+        }
+
+        function createMultiplayerRoom() {
+            sfx.playClick();
+            cleanupMultiplayerListener();
+
+            mp.isHost = true;
+            mp.playerName = getPlayerNickname();
+            const code = generateRoomCode();
+            mp.roomCode = code;
+
+            enterWaitingRoomUI(code);
+            document.getElementById('mp-room-code-display').textContent = code;
+            document.getElementById('mp-host-name-display').textContent = mp.playerName;
+            document.getElementById('mp-guest-name-display').textContent = '⏳ 等待好友輸入邀請碼...';
+            document.getElementById('mp-lobby-status-msg').textContent = '🔄 正在連接全球連線伺服器...';
+
+            mp.roomData = {
+                roomCode: code,
+                status: 'waiting',
+                hostName: mp.playerName,
+                guestName: null,
+                studentRole: null,
+                studentName: null,
+                teacherName: null,
+                examSheets: generateRandomExamSheets(),
+                studentAnswers: null,
+                studentErrors: 0,
+                studentExpectedScore: 0,
+                teacherGivenScore: null,
+                teacherErrors: 0,
+                teacherStamped: false
+            };
+            handleRoomStateUpdate(mp.roomData);
+            initLocalChannel(code);
+            connectCloudRoomChannel(code, 0);
+
+            // 房主定期廣播最新狀態，確保好友隨時進房或網路抖動都能秒同步
+            hostSyncInterval = setInterval(() => {
+                if (mp.isHost && mp.roomData) {
+                    sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
+                }
+            }, 2000);
+        }
+
+        function joinMultiplayerRoom() {
+            const code = document.getElementById('mp-join-code-input').value.trim().toUpperCase();
+            if (code.length < 4) {
+                showFloatingToast('請輸入完整的 6 碼房間邀請碼！', window.innerWidth / 2, window.innerHeight / 2, '#dc2626');
+                return;
+            }
+
+            sfx.playClick();
+            cleanupMultiplayerListener();
+
+            mp.isHost = false;
+            mp.playerName = getPlayerNickname();
+            mp.roomCode = code;
+
+            enterWaitingRoomUI(code);
+            document.getElementById('mp-host-name-display').textContent = '🔍 搜尋房間中...';
+            document.getElementById('mp-guest-name-display').textContent = mp.playerName;
+            document.getElementById('mp-lobby-status-msg').textContent = '正在連線至好友房間，請稍候（約 1～3 秒）...';
+
+            initLocalChannel(code);
+            connectCloudRoomChannel(code, 0);
+
+            // 好友每 1.5 秒持續敲門直到收到房主回應
+            hostSyncInterval = setInterval(() => {
+                if (!mp.isHost && !mp.roomData) {
+                    sendRoomMessage({ type: 'GUEST_JOINED', guestName: mp.playerName });
+                } else if (mp.roomData) {
+                    clearInterval(hostSyncInterval);
+                    hostSyncInterval = null;
+                }
+            }, 1500);
+
+            roomConnectTimer = setTimeout(() => {
+                if (!mp.roomData) {
+                    document.getElementById('mp-lobby-status-msg').textContent = '⏳ 尚未收到房主回應：請確認朋友已按「建立房間」且停留在房間畫面內！';
+                }
+            }, 10000);
+        }
             ];
 
             return [page1, page2];
