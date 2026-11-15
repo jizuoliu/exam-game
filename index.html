@@ -120,6 +120,10 @@
             }
         }
 
+        /* 老師判定按鈕需浮在透明畫布上方，確保滑鼠與觸控都能點擊 */
+        .teacher-judgment { position: relative; z-index: 30; pointer-events: auto; }
+        .teacher-judgment button { position: relative; z-index: 31; pointer-events: auto; touch-action: manipulation; }
+
         /* 手機窄螢幕：讓題目與答案完整留在考卷內 */
         @media (max-width: 640px) {
             #desk-area {
@@ -184,6 +188,17 @@
                 overflow-wrap: anywhere;
                 word-break: break-word;
                 line-height: 1.45;
+            }
+            .teacher-judgment {
+                position: relative;
+                z-index: 30;
+                pointer-events: auto;
+            }
+            .teacher-judgment button {
+                position: relative;
+                z-index: 31;
+                pointer-events: auto;
+                touch-action: manipulation;
             }
         }
 
@@ -1142,6 +1157,7 @@
             currentStroke: null,
             
             sheetAnswers: [{}, {}],
+            teacherJudgments: [{}, {}], // 每題老師判定：wrong / correct
             simStudentInfo: null,
             targetRects: [],
             lastPointerPos: null,
@@ -1269,6 +1285,16 @@
                         ? `${['A', 'B', 'C', 'D'][q.correctIndex] || '?'}：${(q.options?.[q.correctIndex] || '').replace(/^\([A-D]\)\s*/, '')}`
                         : '完成簽名即可';
                     teacherAnswerHtml = `<div class="teacher-answer-mobile mt-2 rounded border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] sm:text-xs font-bold text-emerald-800">✅ 標準答案：${answerText}</div>`;
+                    const judgment = state.teacherJudgments[state.currentSheet]?.[q.id] || '';
+                    teacherAnswerHtml += `
+                        <div class="teacher-judgment mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2" data-judgment-card="${q.id}">
+                            <div class="text-[11px] font-bold text-slate-600 mb-1.5">老師判定這題：</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" data-teacher-judgment="correct" data-qid="${q.id}" class="rounded-lg border-2 px-2 py-2 text-xs sm:text-sm font-black transition ${judgment === 'correct' ? 'border-emerald-600 bg-emerald-100 text-emerald-800' : 'border-slate-300 bg-white text-slate-600'}">✓ 沒錯</button>
+                                <button type="button" data-teacher-judgment="wrong" data-qid="${q.id}" class="rounded-lg border-2 px-2 py-2 text-xs sm:text-sm font-black transition ${judgment === 'wrong' ? 'border-blue-600 bg-blue-100 text-blue-800' : 'border-slate-300 bg-white text-slate-600'}">△ 有錯</button>
+                            </div>
+                            <div class="mt-1.5 text-[11px] font-bold ${judgment === 'wrong' ? 'text-blue-700' : judgment === 'correct' ? 'text-emerald-700' : 'text-slate-400'}" data-judgment-status="${q.id}">${judgment === 'wrong' ? '🔵 藍筆：已標記三角形（此題有錯）' : judgment === 'correct' ? '✓ 已判定：此題沒錯' : '尚未判定'}</div>
+                        </div>`;
                 }
 
                 card.innerHTML = `
@@ -1517,8 +1543,9 @@
             if (isTeacherRole()) {
                 const marks = [...(state.sheetStrokes[0] || []), ...(state.sheetStrokes[1] || [])]
                     .filter(s => s.tool === 'redpen' || s.tool === 'bluepen').length;
+                const judgments = state.teacherJudgments.reduce((n, map) => n + Object.keys(map || {}).length, 0);
                 const stamps = (state.sheetStamps[0]?.length || 0) + (state.sheetStamps[1]?.length || 0);
-                document.getElementById('answered-count-display').textContent = `批改 ${marks} 筆 · 章 ${stamps} 枚`;
+                document.getElementById('answered-count-display').textContent = `判定 ${judgments}/8 題 · 批改 ${marks} 筆 · 章 ${stamps} 枚`;
                 return;
             }
             let count = 0;
@@ -1835,6 +1862,20 @@
                 updateToolHintBanner();
                 updateCursorAppearance();
             });
+        });
+
+        // 老師直接點選每題下方的「沒錯 / 有錯」判定；有錯時以藍色三角形標記。
+        questionsContainer.addEventListener('click', (event) => {
+            const btn = event.target.closest('[data-teacher-judgment]');
+            if (!btn || !isTeacherRole()) return;
+            const qid = btn.dataset.qid;
+            const judgment = btn.dataset.teacherJudgment;
+            if (!qid || !['correct', 'wrong'].includes(judgment)) return;
+            if (!state.teacherJudgments[state.currentSheet]) state.teacherJudgments[state.currentSheet] = {};
+            state.teacherJudgments[state.currentSheet][qid] = judgment;
+            sfx.playClick();
+            renderQuestions();
+            updateAnsweredCounterUI();
         });
 
         document.getElementById('next-sheet-btn').addEventListener('click', () => {
@@ -2394,6 +2435,7 @@
             state.crumbs = [];
             state.stamps = [];
             state.sheetAnswers = [{}, {}];
+            state.teacherJudgments = [{}, {}];
             scratchStrokes = [];
             toggleScratchpad(false);
 
