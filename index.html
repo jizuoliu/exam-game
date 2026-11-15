@@ -616,6 +616,9 @@
                     <button id="mp-leave-room-btn" class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs px-3 py-2.5 rounded-xl cursor-pointer">
                         離開房間
                     </button>
+                    <button id="mp-local-duo-btn" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-3 py-2.5 rounded-xl cursor-pointer" title="朋友就在旁邊？直接用同一台手機/電腦輪流寫卷與批改！">
+                        📱 同機雙人接力
+                    </button>
                     <button id="mp-start-match-btn" disabled class="flex-1 bg-gray-600 text-gray-300 font-black text-sm py-2.5 rounded-xl shadow transition cursor-not-allowed">
                         🎲 等待兩人到齊後隨機抽角色...
                     </button>
@@ -680,11 +683,13 @@
 
     <script>
         // ==========================================
-        // 0. PeerJS 跨裝置即時 P2P 連線引擎 (支援 GitHub Pages 與手機/電腦跨網對戰)
+        // 0. 雙人即時連線引擎 (多重備用信令節點 + 跨分頁即時通道 + 同機接力)
         // ==========================================
-        const PEER_PREFIX = 'tw-exam-duel-v1-';
+        const PEER_PREFIX = 'tw-exam-room-2026-';
         let peerInstance = null;
         let peerConn = null;
+        let localBroadcast = null;
+        let roomConnectTimer = null;
 
         // ==========================================
         // 1. Web Audio API 擬真文具音效引擎
@@ -1884,6 +1889,14 @@
         }
 
         function cleanupMultiplayerListener() {
+            if (roomConnectTimer) {
+                clearTimeout(roomConnectTimer);
+                roomConnectTimer = null;
+            }
+            if (localBroadcast) {
+                try { localBroadcast.close(); } catch (e) {}
+                localBroadcast = null;
+            }
             if (peerConn) {
                 try { peerConn.close(); } catch (e) {}
                 peerConn = null;
@@ -1894,6 +1907,7 @@
             }
             mp.roomCode = null;
             mp.roomData = null;
+            mp.isLocalRelay = false;
             mp.hasStartedMatch = false;
             mp.hasShownGradingView = false;
             mp.hasShownFinalResult = false;
@@ -1901,15 +1915,31 @@
 
         function sendRoomMessage(payload) {
             if (peerConn && peerConn.open) {
-                peerConn.send(payload);
+                try { peerConn.send(payload); } catch (e) {}
+            }
+            if (localBroadcast) {
+                try { localBroadcast.postMessage(payload); } catch (e) {}
             }
         }
 
+        function initLocalChannel(code) {
+            if (typeof BroadcastChannel === 'undefined') return;
+            localBroadcast = new BroadcastChannel(PEER_PREFIX + code);
+            localBroadcast.onmessage = (event) => {
+                const msg = event.data;
+                if (!msg || !msg.type) return;
+                if (msg.type === 'GUEST_JOINED' && mp.isHost && mp.roomData) {
+                    mp.roomData.guestName = msg.guestName || '挑戰好友';
+                    handleRoomStateUpdate(mp.roomData);
+                    sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
+                } else if (msg.type === 'SYNC_STATE' && msg.roomData) {
+                    mp.roomData = msg.roomData;
+                    handleRoomStateUpdate(mp.roomData);
+                }
+            };
+        }
+
         function createMultiplayerRoom() {
-            if (typeof Peer === 'undefined') {
-                showFloatingToast('⚠️ 連線元件載入中，請稍候 2 秒再試', window.innerWidth / 2, window.innerHeight / 2, '#dc2626');
-                return;
-            }
             sfx.playClick();
             cleanupMultiplayerListener();
 
@@ -1918,58 +1948,74 @@
             const code = generateRoomCode();
             mp.roomCode = code;
 
+            // 立刻顯示 6 碼邀請碼，不再讓使用者乾等「連線中...」
             enterWaitingRoomUI(code);
-            document.getElementById('mp-room-code-display').textContent = '連線中...';
+            document.getElementById('mp-room-code-display').textContent = code;
             document.getElementById('mp-host-name-display').textContent = mp.playerName;
-            document.getElementById('mp-guest-name-display').textContent = '⏳ 正在向伺服器申請邀請碼...';
+            document.getElementById('mp-guest-name-display').textContent = '⏳ 等待好友輸入邀請碼...';
 
-            peerInstance = new Peer(PEER_PREFIX + code, { debug: 1 });
+            mp.roomData = {
+                roomCode: code,
+                status: 'waiting',
+                hostName: mp.playerName,
+                guestName: null,
+                studentRole: null,
+                studentName: null,
+                teacherName: null,
+                examSheets: generateRandomExamSheets(),
+                studentAnswers: null,
+                studentErrors: 0,
+                studentExpectedScore: 0,
+                teacherGivenScore: null,
+                teacherErrors: 0,
+                teacherStamped: false
+            };
+            handleRoomStateUpdate(mp.roomData);
+            initLocalChannel(code);
 
-            peerInstance.on('open', () => {
-                document.getElementById('mp-room-code-display').textContent = code;
-                document.getElementById('mp-guest-name-display').textContent = '⏳ 等待好友輸入邀請碼...';
-                mp.roomData = {
-                    roomCode: code,
-                    status: 'waiting',
-                    hostName: mp.playerName,
-                    guestName: null,
-                    studentRole: null,
-                    studentName: null,
-                    teacherName: null,
-                    examSheets: generateRandomExamSheets(),
-                    studentAnswers: null,
-                    studentErrors: 0,
-                    studentExpectedScore: 0,
-                    teacherGivenScore: null,
-                    teacherErrors: 0,
-                    teacherStamped: false
-                };
-                handleRoomStateUpdate(mp.roomData);
-            });
+            if (typeof Peer === 'undefined') {
+                document.getElementById('mp-lobby-status-msg').textContent = '✅ 邀請碼已就緒！（目前為離線模式，可點「📱 同機雙人接力」立即開玩）';
+                return;
+            }
 
-            peerInstance.on('connection', (conn) => {
-                if (peerConn && peerConn.open) {
-                    conn.close();
-                    return;
-                }
-                peerConn = conn;
-                setupPeerConnectionEvents(conn);
-            });
+            try {
+                peerInstance = new Peer(PEER_PREFIX + code, {
+                    debug: 0,
+                    config: {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' },
+                            { urls: 'stun:global.stun.twilio.com:3478' }
+                        ]
+                    }
+                });
 
-            peerInstance.on('error', (err) => {
-                if (err.type === 'unavailable-id') {
-                    createMultiplayerRoom();
-                } else {
-                    document.getElementById('mp-lobby-status-msg').textContent = '⚠️ 連線伺服器忙碌中，請按「離開房間」再試一次！';
-                }
-            });
+                peerInstance.on('open', () => {
+                    document.getElementById('mp-lobby-status-msg').textContent = '🌐 全球連線伺服器已就緒！快把上方 6 碼邀請碼傳給朋友加入！';
+                });
+
+                peerInstance.on('connection', (conn) => {
+                    if (peerConn && peerConn.open) {
+                        conn.close();
+                        return;
+                    }
+                    peerConn = conn;
+                    setupPeerConnectionEvents(conn);
+                });
+
+                peerInstance.on('error', (err) => {
+                    if (err && err.type === 'unavailable-id') {
+                        createMultiplayerRoom();
+                    } else {
+                        document.getElementById('mp-lobby-status-msg').textContent = '💡 若網路環境限制外部連線，可直接點下方「📱 同機雙人接力」與旁邊的朋友輪流對戰！';
+                    }
+                });
+            } catch (e) {
+                document.getElementById('mp-lobby-status-msg').textContent = '💡 已開啟本機房間！可直接點下方「📱 同機雙人接力」立即開局！';
+            }
         }
 
         function joinMultiplayerRoom() {
-            if (typeof Peer === 'undefined') {
-                showFloatingToast('⚠️ 連線元件載入中，請稍候 2 秒再試', window.innerWidth / 2, window.innerHeight / 2, '#dc2626');
-                return;
-            }
             const code = document.getElementById('mp-join-code-input').value.trim().toUpperCase();
             if (code.length < 4) {
                 showFloatingToast('請輸入完整的 6 碼房間邀請碼！', window.innerWidth / 2, window.innerHeight / 2, '#dc2626');
@@ -1986,26 +2032,105 @@
             enterWaitingRoomUI(code);
             document.getElementById('mp-host-name-display').textContent = '🔍 搜尋房間中...';
             document.getElementById('mp-guest-name-display').textContent = mp.playerName;
-            document.getElementById('mp-lobby-status-msg').textContent = '正在連線至好友房間，請稍候...';
+            document.getElementById('mp-lobby-status-msg').textContent = '正在連線至好友房間，請稍候（約 2～4 秒）...';
 
-            peerInstance = new Peer({ debug: 1 });
+            initLocalChannel(code);
+            sendRoomMessage({ type: 'GUEST_JOINED', guestName: mp.playerName });
 
-            peerInstance.on('open', () => {
-                const conn = peerInstance.connect(PEER_PREFIX + code, { reliable: true });
-                peerConn = conn;
-                setupPeerConnectionEvents(conn);
-            });
+            if (typeof Peer === 'undefined') {
+                document.getElementById('mp-lobby-status-msg').textContent = '⚠️ 無法載入跨網元件，請確認網路連線或改用「📱 同機雙人接力」';
+                return;
+            }
 
-            peerInstance.on('error', (err) => {
-                if (err.type === 'peer-unavailable') {
-                    showFloatingToast('❌ 找不到這個邀請碼的房間，請確認房主是否還在房間內！', window.innerWidth / 2, window.innerHeight / 2, '#dc2626');
-                    cleanupMultiplayerListener();
-                    document.getElementById('mp-entry-panel').classList.remove('hidden');
-                    document.getElementById('mp-waiting-panel').classList.add('hidden');
-                } else {
-                    document.getElementById('mp-lobby-status-msg').textContent = '⚠️ 連線發生異常，請確認網路後重試！';
+            roomConnectTimer = setTimeout(() => {
+                if (!mp.roomData) {
+                    document.getElementById('mp-lobby-status-msg').textContent = '⏳ 連線逾時：請確認房主已開啟房間且邀請碼無誤（或點「📱 同機雙人接力」同機遊玩）';
                 }
-            });
+            }, 7000);
+
+            try {
+                peerInstance = new Peer({
+                    debug: 0,
+                    config: {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' }
+                        ]
+                    }
+                });
+
+                peerInstance.on('open', () => {
+                    const conn = peerInstance.connect(PEER_PREFIX + code, { reliable: true });
+                    peerConn = conn;
+                    setupPeerConnectionEvents(conn);
+                });
+
+                peerInstance.on('error', (err) => {
+                    clearTimeout(roomConnectTimer);
+                    if (err && err.type === 'peer-unavailable') {
+                        showFloatingToast('❌ 找不到此邀請碼的房間，請確認房主是否還在房間內！', window.innerWidth / 2, window.innerHeight / 2, '#dc2626');
+                        cleanupMultiplayerListener();
+                        document.getElementById('mp-entry-panel').classList.remove('hidden');
+                        document.getElementById('mp-waiting-panel').classList.add('hidden');
+                    } else {
+                        document.getElementById('mp-lobby-status-msg').textContent = '⚠️ 網路防火牆阻擋 P2P 連線，建議改用「📱 同機雙人接力」遊玩！';
+                    }
+                });
+            } catch (e) {
+                document.getElementById('mp-lobby-status-msg').textContent = '⚠️ 連線初始化失敗，請改用「📱 同機雙人接力」遊玩！';
+            }
+        }
+
+        function startLocalRelayDuel() {
+            sfx.playClick();
+            const hostName = getPlayerNickname();
+            const code = mp.roomCode || generateRoomCode();
+            mp.isHost = true;
+            mp.isLocalRelay = true;
+            mp.roomCode = code;
+            mp.hasStartedMatch = false;
+            mp.hasShownGradingView = false;
+            mp.hasShownFinalResult = false;
+
+            const hostIsStudent = Math.random() < 0.5;
+            mp.roomData = {
+                roomCode: code,
+                status: 'student_writing',
+                hostName: hostName,
+                guestName: '好友玩家 2',
+                studentRole: hostIsStudent ? 'host' : 'guest',
+                studentName: hostIsStudent ? hostName : '好友玩家 2',
+                teacherName: hostIsStudent ? '好友玩家 2' : hostName,
+                examSheets: generateRandomExamSheets(),
+                studentAnswers: null,
+                studentErrors: 0,
+                studentExpectedScore: 0,
+                teacherGivenScore: null,
+                teacherErrors: 0,
+                teacherStamped: false
+            };
+
+            document.getElementById('mp-lobby-modal').classList.add('hidden');
+            document.getElementById('start-modal').classList.add('hidden');
+
+            const d = mp.roomData;
+            state.examSheets = d.examSheets;
+            const overlay = document.getElementById('mp-overlay-banner');
+            document.getElementById('mp-overlay-icon').textContent = '🎲';
+            document.getElementById('mp-overlay-title').textContent = '📱 同機雙人接力：角色抽籤完成！';
+            document.getElementById('mp-overlay-desc').textContent = `請先交給【${d.studentName}（學生）】作答正反面 8 題，交卷後再把手機/電腦交給【${d.teacherName}（劉老師）】批改！`;
+            document.getElementById('mp-role-student-name').textContent = d.studentName;
+            document.getElementById('mp-role-teacher-name').textContent = d.teacherName;
+            document.getElementById('mp-overlay-role-card').classList.remove('hidden');
+
+            const actionBtn = document.getElementById('mp-overlay-action-btn');
+            actionBtn.classList.remove('hidden');
+            actionBtn.textContent = `✏️ 由【${d.studentName}】開始作答！`;
+            actionBtn.onclick = () => {
+                overlay.classList.add('hidden');
+                launchGameSession('mp_student', true);
+            };
+            overlay.classList.remove('hidden');
         }
 
         function setupPeerConnectionEvents(conn) {
@@ -2111,6 +2236,26 @@
 
             if (data.status === 'teacher_grading' && !mp.hasShownGradingView) {
                 mp.hasShownGradingView = true;
+                if (mp.isLocalRelay) {
+                    const overlay = document.getElementById('mp-overlay-banner');
+                    document.getElementById('mp-overlay-icon').textContent = '💮';
+                    document.getElementById('mp-overlay-title').textContent = `學生已交卷！請交給【${data.teacherName}】`;
+                    document.getElementById('mp-overlay-desc').textContent = `請把螢幕交給【${data.teacherName}（劉老師）】，用紅筆打勾、藍筆找錯並蓋上【劉老師】印章！`;
+                    document.getElementById('mp-overlay-role-card').classList.remove('hidden');
+                    const actionBtn = document.getElementById('mp-overlay-action-btn');
+                    actionBtn.classList.remove('hidden');
+                    actionBtn.textContent = `💮 由【${data.teacherName}】開始批改！`;
+                    actionBtn.onclick = () => {
+                        overlay.classList.add('hidden');
+                        launchGameSession('mp_teacher', true);
+                        const parsedAns = data.studentAnswers || [{}, {}];
+                        populateSimulatedStudentSheet(1, parsedAns[1]);
+                        populateSimulatedStudentSheet(0, parsedAns[0]);
+                    };
+                    overlay.classList.remove('hidden');
+                    return;
+                }
+
                 const amITeacher = (mp.isHost && data.studentRole === 'guest') || (!mp.isHost && data.studentRole === 'host');
                 const overlay = document.getElementById('mp-overlay-banner');
 
@@ -2175,6 +2320,8 @@
             document.getElementById('mp-entry-panel').classList.remove('hidden');
             document.getElementById('mp-waiting-panel').classList.add('hidden');
         });
+
+        document.getElementById('mp-local-duo-btn').addEventListener('click', startLocalRelayDuel);
 
         document.getElementById('mp-start-match-btn').addEventListener('click', () => {
             if (!mp.isHost || !mp.roomData || !mp.roomData.guestName) return;
