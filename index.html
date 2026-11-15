@@ -121,35 +121,35 @@
         }
     </style>
 </head>
-<body>
-
-    <!-- 跟隨滑鼠的文具游標 -->
-    <div id="custom-cursor"></div>
-
-    <!-- 頂部狀態列 (黑板風格儀表板) -->
-    <header class="w-full bg-[#1e352f] border-b-4 border-[#8c5832] px-3 py-2 flex items-center justify-between shadow-lg z-20 shrink-0">
-        <div class="flex items-center gap-2 sm:gap-3">
-            <button id="back-menu-btn" class="bg-amber-700 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg shadow border-b-2 border-amber-900 transition cursor-pointer">
-                🏠 模式選單
-            </button>
-
-            <div class="bg-[#152622] px-2.5 sm:px-3 py-1 rounded-lg border border-emerald-700/50 flex items-center gap-1.5 sm:gap-2">
-                <span class="text-xs sm:text-sm text-emerald-300 font-bold">📝 目前模式</span>
-                <span id="mode-badge-text" class="text-xs sm:text-base font-black text-amber-300">學生考試</span>
+            <!-- 步驟 A：一鍵產生專屬邀請連結 -->
+            <div id="mp-entry-panel" class="mb-3">
+                <div class="bg-indigo-50 border-2 border-indigo-400 rounded-xl p-4 text-center">
+                    <div class="text-3xl mb-1">🔗</div>
+                    <h3 class="font-black text-lg text-indigo-950 mb-1">建立雙人對戰房間</h3>
+                    <p class="text-xs sm:text-sm text-gray-600 mb-3 leading-relaxed">
+                        點擊下方按鈕建立房間，系統會自動產生一組<strong>專屬邀請連結</strong>，傳給好朋友後，好友<strong>一按連結就會直接自動進房</strong>！
+                    </p>
+                    <button id="mp-create-room-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-98 text-white font-black text-base py-3 rounded-xl shadow border-b-4 border-indigo-800 cursor-pointer">
+                        ➕ 建立房間並產生邀請連結
+                    </button>
+                </div>
             </div>
 
-            <div class="bg-[#152622] px-2.5 sm:px-3 py-1 rounded-lg border border-emerald-700/50 flex items-center gap-1.5 sm:gap-2">
-                <span id="status-label-text" class="text-xs sm:text-sm text-emerald-300 font-bold">📋 作答狀態</span>
-                <span id="answered-count-display" class="text-xs sm:text-base font-black text-white tabular-nums">已寫 0 / 8 題</span>
-            </div>
-        </div>
+            <!-- 步驟 B：房間內等待配對與隨機抽角色 -->
+            <div id="mp-waiting-panel" class="hidden bg-slate-900 text-white rounded-xl p-4 border-2 border-indigo-500">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-3 mb-3">
+                    <div>
+                        <span class="text-xs text-emerald-300 font-bold block">🔗 專屬房間邀請連結已產生！</span>
+                        <span class="text-xs text-slate-300">傳給好朋友，好友一按連結免輸入直接進房</span>
+                    </div>
+                    <button id="mp-copy-link-btn" class="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-sm px-4 py-2 rounded-lg shadow cursor-pointer">
+                        🔗 一鍵複製邀請連結
+                    </button>
+                </div>
 
-        <!-- 卷面整潔度 / 老師分數輸入 & 交卷/發還 -->
-        <div class="flex items-center gap-2 sm:gap-3">
-            <div id="student-neatness-box" class="hidden sm:flex flex-col w-32 bg-[#152622] px-2.5 py-1 rounded-lg border border-emerald-700/50">
-                <div class="flex justify-between text-[11px] font-bold text-emerald-200 mb-0.5">
-                    <span>✨ 卷面整潔</span>
-                    <span id="neatness-text">100%</span>
+                <div class="mb-3 bg-slate-800/90 border border-slate-700 rounded-lg px-2.5 py-2 flex items-center gap-2">
+                    <span class="text-xs text-emerald-300 font-bold whitespace-nowrap">網址：</span>
+                    <input id="mp-invite-link-input" type="text" readonly class="flex-1 bg-transparent text-xs text-amber-200 font-mono focus:outline-none select-all" value="">
                 </div>
                 <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
                     <div id="neatness-bar" class="h-full bg-emerald-400 transition-all duration-200" style="width: 100%;"></div>
@@ -992,10 +992,9 @@
             mp.roomCode = code;
 
             enterWaitingRoomUI(code);
-            document.getElementById('mp-room-code-display').textContent = code;
             document.getElementById('mp-host-name-display').textContent = mp.playerName;
             document.getElementById('mp-guest-name-display').textContent = '⏳ 等待好友點擊連結進房...';
-            document.getElementById('mp-lobby-status-msg').textContent = '🌐 房間已建立！快點綠色「🔗 複製邀請連結」傳給好友！';
+            document.getElementById('mp-lobby-status-msg').textContent = '🌐 房間已建立！快點綠色「🔗 一鍵複製邀請連結」傳給好友！';
 
             mp.roomData = {
                 roomCode: code,
@@ -1018,20 +1017,16 @@
             startCloudRoomStream(code);
             sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
 
-            // 房主定期廣播最新狀態，確保好友一輸入邀請碼就能秒抓到房間
             hostSyncInterval = setInterval(() => {
                 if (mp.isHost && mp.roomData) {
                     sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
                 }
-        function joinMultiplayerRoom(presetCode = null) {
-            const rawCode = typeof presetCode === 'string'
-                ? presetCode
-                : document.getElementById('mp-join-code-input').value;
-            const code = rawCode.trim().toUpperCase();
-            if (code.length < 4) {
-                showFloatingToast('請輸入完整的 6 碼房間邀請碼！', window.innerWidth / 2, window.innerHeight / 2, '#dc2626');
-                return;
-            }
+            }, 2000);
+        }
+
+        function joinMultiplayerRoom(presetCode) {
+            const code = (presetCode || '').trim().toUpperCase();
+            if (code.length < 4) return;
 
             sfx.playClick();
             cleanupMultiplayerListener();
@@ -1043,14 +1038,13 @@
             enterWaitingRoomUI(code);
             document.getElementById('mp-host-name-display').textContent = '🔍 正在進入好友房間...';
             document.getElementById('mp-guest-name-display').textContent = mp.playerName;
-            document.getElementById('mp-lobby-status-msg').textContent = '📡 正在連線至好友房間，請稍候...';
+            document.getElementById('mp-lobby-status-msg').textContent = '📡 已透過邀請連結連線至好友房間，配對中...';
 
             initLocalChannel(code);
             startCloudRoomStream(code);
             pollCachedRoomMessages(code);
             sendRoomMessage({ type: 'GUEST_JOINED', guestName: mp.playerName });
 
-            // 好友每 1.5 秒主動輪詢歷史紀錄與發送敲門通知，直到成功收到房主資訊
             guestPollInterval = setInterval(() => {
                 if (!mp.isHost && !mp.roomData) {
                     pollCachedRoomMessages(code);
@@ -1063,7 +1057,7 @@
 
             roomConnectTimer = setTimeout(() => {
                 if (!mp.roomData) {
-                    document.getElementById('mp-lobby-status-msg').textContent = '⏳ 尚未收到房主回應：請確認朋友已按「建立房間」且邀請碼無誤！';
+                    document.getElementById('mp-lobby-status-msg').textContent = '⏳ 尚未收到房主回應：請確認朋友的房間視窗還開著，或請他重新複製連結傳給你！';
                 }
             }, 12000);
         }
@@ -1894,7 +1888,6 @@
         function enterWaitingRoomUI(code) {
             document.getElementById('mp-entry-panel').classList.add('hidden');
             document.getElementById('mp-waiting-panel').classList.remove('hidden');
-            document.getElementById('mp-room-code-display').textContent = code;
             const inviteUrl = new URL(window.location.href);
             inviteUrl.searchParams.set('room', code);
             document.getElementById('mp-invite-link-input').value = inviteUrl.toString();
@@ -1914,14 +1907,26 @@
 
             document.getElementById('mp-host-name-display').textContent = data.hostName || '房主';
             document.getElementById('mp-guest-name-display').textContent = data.guestName || '⏳ 等待好友點擊連結進房...';
+
+            if (data.status === 'waiting') {
+                const startBtn = document.getElementById('mp-start-match-btn');
+                const statusMsg = document.getElementById('mp-lobby-status-msg');
+                if (data.guestName) {
+                    if (mp.isHost) {
+                        statusMsg.textContent = `🎉 好友「${data.guestName}」已透過連結進房！按下方按鈕隨機分配角色！`;
+                        startBtn.disabled = false;
+                        startBtn.textContent = '🎲 隨機分配角色並開始對戰！';
+                        startBtn.className = 'flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm py-2.5 rounded-xl shadow cursor-pointer';
+                    } else {
+                        statusMsg.textContent = `🎉 已透過連結加入「${data.hostName}」的房間！等待房主按開始...`;
                         startBtn.disabled = true;
                         startBtn.textContent = '⏳ 已連線！等待房主按下隨機抽角色...';
                         startBtn.className = 'flex-1 bg-indigo-800 text-indigo-200 font-black text-sm py-2.5 rounded-xl cursor-not-allowed';
                     }
                 } else {
-                    statusMsg.textContent = '請把上方的 6 碼邀請碼傳給好朋友，朋友輸入加入後即可開始！';
+                    statusMsg.textContent = '點上方綠色「🔗 一鍵複製邀請連結」傳給好友，好友一按連結就會自動進房！';
                     startBtn.disabled = true;
-                    startBtn.textContent = '🎲 等待兩人到齊後隨機抽角色...';
+                    startBtn.textContent = '🎲 等待好友點連結進房...';
                     startBtn.className = 'flex-1 bg-gray-600 text-gray-300 font-black text-sm py-2.5 rounded-xl cursor-not-allowed';
                 }
                 return;
@@ -2027,14 +2032,13 @@
         });
 
         document.getElementById('mp-create-room-btn').addEventListener('click', createMultiplayerRoom);
-        document.getElementById('mp-join-room-btn').addEventListener('click', () => joinMultiplayerRoom());
 
         document.getElementById('mp-copy-link-btn').addEventListener('click', () => {
             if (!mp.roomCode) return;
             const linkVal = document.getElementById('mp-invite-link-input').value;
             copyTextFallback(linkVal);
             sfx.playClick();
-            showFloatingToast('🔗 已複製房間邀請連結！快傳給好友點擊加入！', window.innerWidth / 2, 120, '#10b981');
+            showFloatingToast('🔗 已複製房間邀請連結！快貼到 LINE 傳給好友點擊加入！', window.innerWidth / 2, 120, '#10b981');
         });
 
         document.getElementById('mp-copy-code-btn').addEventListener('click', () => {
