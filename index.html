@@ -174,6 +174,27 @@
         <span id="crumb-warning-mobile" class="text-amber-300 font-bold hidden">⚠️ 擦屑過多！</span>
     </div>
 
+    <!-- 單人普通考試專用：作弊小抄入口 -->
+    <button id="cheat-sheet-btn" class="hidden fixed right-2 top-1/2 -translate-y-1/2 z-40 bg-amber-500 hover:bg-amber-400 active:scale-95 text-amber-950 font-black text-xs sm:text-sm px-2.5 py-3 rounded-xl shadow-xl border-2 border-amber-800/70" style="writing-mode: vertical-rl;" aria-label="使用作弊小抄">
+        📜 作弊小抄
+    </button>
+
+    <!-- 小抄視窗：限制高度並可在手機內部捲動 -->
+    <div id="cheat-sheet-modal" class="hidden fixed inset-0 z-[60] bg-black/65 flex items-center justify-center p-3 sm:p-5" style="padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(12px, env(safe-area-inset-bottom));">
+        <section class="w-full max-w-md max-h-[min(82dvh,680px)] bg-[#fff9e9] border-4 border-amber-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="shrink-0 bg-amber-800 text-amber-50 px-3 py-2.5 flex items-center justify-between gap-2">
+                <div class="min-w-0"><h2 class="font-black text-base sm:text-lg">📜 考場秘密小抄</h2><p class="text-[10px] sm:text-xs text-amber-200">偷偷看一下，別被劉老師抓到！</p></div>
+                <button id="close-cheat-sheet-btn" class="shrink-0 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-3 py-2 rounded-lg">✖ 收起</button>
+            </div>
+            <div class="overflow-y-auto overscroll-contain p-3 sm:p-4 text-xs sm:text-sm text-amber-950 space-y-3">
+                <div class="bg-white/80 rounded-xl border border-amber-300 p-3"><h3 class="font-black text-amber-900 mb-1">➗ 數學速記</h3><ul class="list-disc pl-5 space-y-1"><li>平均分配：總數 ÷ 份數</li><li>公升換毫升：1 公升 = 1000 毫升</li><li>正三角形：三個內角都是 60°</li><li>圓周長：直徑 × 3.14，或半徑 × 2 × 3.14</li><li>分數加法：先通分，再相加分子</li><li>負負得正：減去負數等於加上正數</li></ul></div>
+                <div class="bg-white/80 rounded-xl border border-amber-300 p-3"><h3 class="font-black text-amber-900 mb-1">🌱 自然與生活</h3><ul class="list-disc pl-5 space-y-1"><li>植物光合作用會吸收二氧化碳</li><li>昆蟲有 6 隻腳；蜘蛛有 8 隻腳</li><li>磁鐵兩端的磁極磁力最強</li><li>粒線體負責細胞呼吸並產生能量</li></ul></div>
+                <div class="bg-white/80 rounded-xl border border-amber-300 p-3"><h3 class="font-black text-amber-900 mb-1">🗺️ 國語、社會與英文</h3><ul class="list-disc pl-5 space-y-1"><li>東的反義詞是西</li><li>台灣本島最南端：屏東縣</li><li>Library = 圖書館</li></ul></div>
+                <p class="text-center text-[10px] sm:text-xs text-red-700 font-bold">⚠️ 每次翻開小抄，都有 25% 機率被老師發現！</p>
+            </div>
+        </section>
+    </div>
+
     <!-- 中央桌面與考卷舞台 -->
     <main id="desk-area" class="flex-1 relative flex items-center justify-center p-2 sm:p-4 overflow-hidden">
         
@@ -2053,6 +2074,9 @@
             sfx.playClick();
 
             state.gameMode = mode;
+            // 小抄只允許單人普通學生考試使用，不出現在老師或雙人模式
+            document.getElementById('cheat-sheet-btn').classList.toggle('hidden', mode !== 'student');
+            document.getElementById('cheat-sheet-modal').classList.add('hidden');
             state.isPlaying = true;
             state.currentSheet = 0;
             if (!keepPresetSheets) {
@@ -2143,6 +2167,25 @@
             updateCursorAppearance();
             updateToolHintBanner();
         }
+
+        document.getElementById('cheat-sheet-btn').addEventListener('click', () => {
+            if (!state.isPlaying || state.gameMode !== 'student') return;
+            // 每次點擊使用小抄都重新判定，25% 機率被老師抓到
+            if (Math.random() < 0.25) {
+                alert('🚨 糟糕！你被劉老師發現正在偷看小抄！小抄被沒收，這次不能查看內容。');
+                return;
+            }
+            document.getElementById('cheat-sheet-modal').classList.remove('hidden');
+        });
+        document.getElementById('close-cheat-sheet-btn').addEventListener('click', () => {
+            document.getElementById('cheat-sheet-modal').classList.add('hidden');
+        });
+        document.getElementById('cheat-sheet-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'cheat-sheet-modal') e.currentTarget.classList.add('hidden');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') document.getElementById('cheat-sheet-modal').classList.add('hidden');
+        });
 
         document.getElementById('start-student-btn').addEventListener('click', () => launchGameSession('student'));
         document.getElementById('start-teacher-btn').addEventListener('click', () => launchGameSession('teacher'));
