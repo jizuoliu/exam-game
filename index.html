@@ -522,6 +522,7 @@
                             <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">傳連結 · 隨機角色</span>
                         </div>
                         <h3 class="font-exam text-lg font-black text-indigo-950 mb-1">🤝 雙人好友連線</h3>
+                        <p class="text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded-lg px-2 py-1.5 mb-2">⚠️ 雙人模式目前仍在測試中，可能有許多 Bug，請見諒！</p>
                         <ul class="text-xs text-gray-700 space-y-1 mb-3 leading-relaxed">
                             <li>• 🔗 產生<strong>專屬邀請連結</strong>，好友一按直接進房</li>
                             <li>• 🎲 系統<strong>隨機分配</strong>一人當學生、一人當老師</li>
@@ -1021,27 +1022,21 @@
             });
         }
 
-   function recalculateTargetRects() {
-    const contentRect = paperScrollContent.getBoundingClientRect();
-
-    const scaleX = canvas.width / contentRect.width;
-    const scaleY = canvas.height / contentRect.height;
-
-    const targets = questionsContainer.querySelectorAll('.answer-target');
-
-    state.targetRects = Array.from(targets).map(el => {
-        const r = el.getBoundingClientRect();
-
-        return {
-            qid: el.dataset.qid,
-            optIdx: parseInt(el.dataset.optIdx, 10),
-            x: (r.left - contentRect.left) * scaleX,
-            y: (r.top - contentRect.top) * scaleY,
-            w: r.width * scaleX,
-            h: r.height * scaleY
-        };
-    });
-}
+        function recalculateTargetRects() {
+            const contentRect = paperScrollContent.getBoundingClientRect();
+            const targets = questionsContainer.querySelectorAll('.answer-target');
+            state.targetRects = Array.from(targets).map(el => {
+                const r = el.getBoundingClientRect();
+                return {
+                    qid: el.dataset.qid,
+                    optIdx: parseInt(el.dataset.optIdx, 10),
+                    x: r.left - contentRect.left,
+                    y: r.top - contentRect.top,
+                    w: r.width,
+                    h: r.height
+                };
+            });
+        }
 
         function resizeCanvas() {
             const w = paperScrollContent.clientWidth || 680;
@@ -1099,17 +1094,13 @@
             });
         }
 
-function getCanvasCoords(e) {
-    const rect = canvas.getBoundingClientRect();
-
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
-    };
-}
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
 
         function checkStrokeHitsTarget(stroke) {
             if (isTeacherRole() || !stroke || stroke.tool === 'eraser' || stroke.tool === 'hand') return;
