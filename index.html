@@ -588,12 +588,22 @@
             <div id="mp-waiting-panel" class="hidden bg-slate-900 text-white rounded-xl p-4 border-2 border-indigo-500">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-3 mb-3">
                     <div>
-                        <span class="text-xs text-indigo-300 font-bold block">📢 房間邀請碼（點按鈕複製給朋友）</span>
+                        <span class="text-xs text-indigo-300 font-bold block">📢 房間邀請碼（好友點連結免輸入直接進房）</span>
                         <span id="mp-room-code-display" class="font-mono text-2xl sm:text-3xl font-black tracking-widest text-amber-300">------</span>
                     </div>
-                    <button id="mp-copy-code-btn" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3 py-2 rounded-lg shadow cursor-pointer">
-                        📋 複製邀請碼
-                    </button>
+                    <div class="flex flex-col sm:flex-row gap-1.5">
+                        <button id="mp-copy-link-btn" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-3 py-2 rounded-lg shadow cursor-pointer">
+                            🔗 複製邀請連結
+                        </button>
+                        <button id="mp-copy-code-btn" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-2.5 py-2 rounded-lg shadow cursor-pointer">
+                            📋 複製代碼
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-3 bg-slate-800/90 border border-slate-700 rounded-lg px-2.5 py-1.5 flex items-center gap-2">
+                    <span class="text-[11px] text-emerald-300 font-bold whitespace-nowrap">🔗 邀請連結：</span>
+                    <input id="mp-invite-link-input" type="text" readonly class="flex-1 bg-transparent text-[11px] text-slate-300 font-mono focus:outline-none select-all" value="">
                 </div>
 
                 <div class="grid grid-cols-2 gap-2.5 mb-3">
@@ -603,12 +613,12 @@
                     </div>
                     <div class="bg-slate-800 rounded-lg p-2.5 border border-slate-700">
                         <span class="text-[11px] text-slate-400 block">好友 (玩家 2)</span>
-                        <span id="mp-guest-name-display" class="font-black text-sm text-amber-300 truncate block">⏳ 等待好友輸入邀請碼...</span>
+                        <span id="mp-guest-name-display" class="font-black text-sm text-amber-300 truncate block">⏳ 等待好友點擊連結進房...</span>
                     </div>
                 </div>
 
                 <p id="mp-lobby-status-msg" class="text-xs text-center text-indigo-200 mb-3">
-                    請把上方的 6 碼邀請碼傳給好朋友，朋友輸入加入後即可隨機分配老師與學生角色！
+                    點上方綠色「🔗 複製邀請連結」傳給好友，好友一按連結就會自動進房！
                 </p>
 
                 <div class="flex gap-2">
@@ -984,8 +994,8 @@
             enterWaitingRoomUI(code);
             document.getElementById('mp-room-code-display').textContent = code;
             document.getElementById('mp-host-name-display').textContent = mp.playerName;
-            document.getElementById('mp-guest-name-display').textContent = '⏳ 等待好友輸入邀請碼...';
-            document.getElementById('mp-lobby-status-msg').textContent = '🌐 房間已建立！快把上方 6 碼邀請碼傳給好友！';
+            document.getElementById('mp-guest-name-display').textContent = '⏳ 等待好友點擊連結進房...';
+            document.getElementById('mp-lobby-status-msg').textContent = '🌐 房間已建立！快點綠色「🔗 複製邀請連結」傳給好友！';
 
             mp.roomData = {
                 roomCode: code,
@@ -1013,11 +1023,11 @@
                 if (mp.isHost && mp.roomData) {
                     sendRoomMessage({ type: 'SYNC_STATE', roomData: mp.roomData });
                 }
-            }, 2500);
-        }
-
-        function joinMultiplayerRoom() {
-            const code = document.getElementById('mp-join-code-input').value.trim().toUpperCase();
+        function joinMultiplayerRoom(presetCode = null) {
+            const rawCode = typeof presetCode === 'string'
+                ? presetCode
+                : document.getElementById('mp-join-code-input').value;
+            const code = rawCode.trim().toUpperCase();
             if (code.length < 4) {
                 showFloatingToast('請輸入完整的 6 碼房間邀請碼！', window.innerWidth / 2, window.innerHeight / 2, '#dc2626');
                 return;
@@ -1031,7 +1041,7 @@
             mp.roomCode = code;
 
             enterWaitingRoomUI(code);
-            document.getElementById('mp-host-name-display').textContent = '🔍 搜尋房間中...';
+            document.getElementById('mp-host-name-display').textContent = '🔍 正在進入好友房間...';
             document.getElementById('mp-guest-name-display').textContent = mp.playerName;
             document.getElementById('mp-lobby-status-msg').textContent = '📡 正在連線至好友房間，請稍候...';
 
@@ -1885,25 +1895,25 @@
             document.getElementById('mp-entry-panel').classList.add('hidden');
             document.getElementById('mp-waiting-panel').classList.remove('hidden');
             document.getElementById('mp-room-code-display').textContent = code;
+            const inviteUrl = new URL(window.location.href);
+            inviteUrl.searchParams.set('room', code);
+            document.getElementById('mp-invite-link-input').value = inviteUrl.toString();
+        }
+
+        function copyTextFallback(text) {
+            const tempInput = document.createElement('input');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
         }
 
         function handleRoomStateUpdate(data) {
             if (!data) return;
 
             document.getElementById('mp-host-name-display').textContent = data.hostName || '房主';
-            document.getElementById('mp-guest-name-display').textContent = data.guestName || '⏳ 等待好友輸入邀請碼...';
-
-            const startBtn = document.getElementById('mp-start-match-btn');
-            const statusMsg = document.getElementById('mp-lobby-status-msg');
-
-            if (data.status === 'waiting') {
-                if (data.guestName) {
-                    statusMsg.textContent = '🎉 兩位玩家已成功連線！點擊下方按鈕隨機抽選誰當老師、誰當學生！';
-                    if (mp.isHost) {
-                        startBtn.disabled = false;
-                        startBtn.textContent = '🎲 隨機分配角色並開始對戰！';
-                        startBtn.className = 'flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm py-2.5 rounded-xl shadow border-b-4 border-emerald-800 cursor-pointer';
-                    } else {
+            document.getElementById('mp-guest-name-display').textContent = data.guestName || '⏳ 等待好友點擊連結進房...';
                         startBtn.disabled = true;
                         startBtn.textContent = '⏳ 已連線！等待房主按下隨機抽角色...';
                         startBtn.className = 'flex-1 bg-indigo-800 text-indigo-200 font-black text-sm py-2.5 rounded-xl cursor-not-allowed';
@@ -2017,23 +2027,31 @@
         });
 
         document.getElementById('mp-create-room-btn').addEventListener('click', createMultiplayerRoom);
-        document.getElementById('mp-join-room-btn').addEventListener('click', joinMultiplayerRoom);
+        document.getElementById('mp-join-room-btn').addEventListener('click', () => joinMultiplayerRoom());
+
+        document.getElementById('mp-copy-link-btn').addEventListener('click', () => {
+            if (!mp.roomCode) return;
+            const linkVal = document.getElementById('mp-invite-link-input').value;
+            copyTextFallback(linkVal);
+            sfx.playClick();
+            showFloatingToast('🔗 已複製房間邀請連結！快傳給好友點擊加入！', window.innerWidth / 2, 120, '#10b981');
+        });
 
         document.getElementById('mp-copy-code-btn').addEventListener('click', () => {
             if (!mp.roomCode) return;
-            const tempInput = document.createElement('input');
-            tempInput.value = mp.roomCode;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
+            copyTextFallback(mp.roomCode);
             sfx.playClick();
-            showFloatingToast(`📋 已複製邀請碼：${mp.roomCode}`, window.innerWidth / 2, 120, '#10b981');
+            showFloatingToast(`📋 已複製邀請碼：${mp.roomCode}`, window.innerWidth / 2, 120, '#f59e0b');
         });
 
         document.getElementById('mp-leave-room-btn').addEventListener('click', () => {
             sfx.playClick();
             cleanupMultiplayerListener();
+            try {
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete('room');
+                window.history.replaceState({}, '', cleanUrl.toString());
+            } catch (e) {}
             document.getElementById('mp-entry-panel').classList.remove('hidden');
             document.getElementById('mp-waiting-panel').classList.add('hidden');
         });
@@ -2477,6 +2495,15 @@
 
         window.onload = function () {
             resizeCanvas();
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const inviteRoom = params.get('room');
+                if (inviteRoom && inviteRoom.trim().length >= 4) {
+                    document.getElementById('start-modal').classList.add('hidden');
+                    document.getElementById('mp-lobby-modal').classList.remove('hidden');
+                    joinMultiplayerRoom(inviteRoom.trim().toUpperCase());
+                }
+            } catch (e) {}
         };
     </script>
 </body>
