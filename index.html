@@ -238,17 +238,17 @@
         </div>
     </main>
 
-    <!-- 底部文具盒工具列 (7大核心文具與輔助工具) -->
-    <footer class="w-full bg-[#3d2514]/95 border-t-4 border-[#2b190d] px-1.5 sm:px-2 py-2 sm:py-2.5 z-30 shrink-0 shadow-2xl">
-        <div class="max-w-5xl mx-auto grid grid-cols-7 gap-1 sm:gap-2">
+    <!-- 底部文具盒工具列 (7大核心文具與輔助工具，手機版自動分兩排完整顯示) -->
+    <footer class="w-full bg-[#3d2514]/95 border-t-4 border-[#2b190d] px-2 py-1.5 sm:py-2.5 z-30 shrink-0 shadow-2xl">
+        <div class="max-w-5xl mx-auto grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2">
             
             <!-- 1. 鉛筆 (Wooden Pencil) -->
-            <button id="tool-pencil" data-tool="pencil" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-amber-900">
+            <button id="tool-pencil" data-tool="pencil" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-amber-900">
                     <span>✏️ 鉛筆</span>
                     <span id="pencil-sharp-text" class="text-emerald-700 hidden sm:inline">100%</span>
                 </div>
-                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-7 h-7 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <g transform="rotate(-35 32 32)">
                         <rect x="24" y="6" width="16" height="8" rx="2" fill="#f472b6"/>
                         <rect x="24" y="13" width="16" height="4" fill="#9ca3af"/>
@@ -259,21 +259,21 @@
                         <polygon id="pencil-tip-svg" points="29.5,55.5 34.5,55.5 32,60" fill="#374151"/>
                     </g>
                 </svg>
-                <div class="w-full flex items-center gap-0.5 sm:gap-1">
+                <div class="w-full flex items-center gap-1">
                     <div class="flex-1 h-1.5 bg-gray-300 rounded-full overflow-hidden">
                         <div id="pencil-sharp-bar" class="h-full bg-amber-500 transition-all" style="width: 100%;"></div>
                     </div>
-                    <span id="sharpen-action-badge" class="bg-amber-600 text-white text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded hover:bg-amber-500" title="點擊削尖鉛筆">削尖</span>
+                    <span id="sharpen-action-badge" class="bg-amber-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded hover:bg-amber-500" title="點擊削尖鉛筆">削尖</span>
                 </div>
             </button>
 
             <!-- 2. 自動筆 (Mechanical Pencil) -->
-            <button id="tool-mech" data-tool="mech" class="tool-slot active bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-sky-900">
+            <button id="tool-mech" data-tool="mech" class="tool-slot active bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-sky-900">
                     <span>🖊️ 自動筆</span>
                     <span id="mech-lead-text" class="text-sky-700 hidden sm:inline">100%</span>
                 </div>
-                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-7 h-7 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <g transform="rotate(-35 32 32)">
                         <rect x="28" y="4" width="8" height="6" rx="1" fill="#cbd5e1"/>
                         <rect x="26" y="10" width="12" height="34" rx="2" fill="#0284c7"/>
@@ -283,21 +283,21 @@
                         <line id="mech-lead-svg" x1="32" y1="56" x2="32" y2="62" stroke="#1e293b" stroke-width="1.8"/>
                     </g>
                 </svg>
-                <div class="w-full flex items-center gap-0.5 sm:gap-1">
+                <div class="w-full flex items-center gap-1">
                     <div class="flex-1 h-1.5 bg-gray-300 rounded-full overflow-hidden">
                         <div id="mech-lead-bar" class="h-full bg-sky-500 transition-all" style="width: 100%;"></div>
                     </div>
-                    <span id="click-lead-badge" class="bg-sky-600 text-white text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded">按壓</span>
+                    <span id="click-lead-badge" class="bg-sky-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded">按壓</span>
                 </div>
             </button>
 
             <!-- 3. 自動筆筆芯盒 (Mechanical Pencil Lead Refill Box) -->
-            <button id="tool-leadbox" data-tool="leadbox" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-slate-800">
+            <button id="tool-leadbox" data-tool="leadbox" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-slate-800">
                     <span>📦 筆芯盒</span>
                     <span id="lead-sticks-count" class="text-indigo-700 font-black">4根</span>
                 </div>
-                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-7 h-7 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <rect x="20" y="6" width="24" height="10" rx="2" fill="#1e3a8a"/>
                     <rect x="21" y="16" width="22" height="42" rx="2" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5"/>
                     <rect x="21" y="24" width="22" height="22" fill="#1d4ed8"/>
@@ -309,17 +309,17 @@
                     <line x1="37" y1="47" x2="37" y2="56" stroke="#334155" stroke-width="1.2"/>
                 </svg>
                 <div class="w-full text-center">
-                    <span id="refill-prompt-badge" class="block w-full bg-indigo-600 text-white text-[8px] sm:text-[10px] font-bold py-0.5 rounded">補筆芯</span>
+                    <span id="refill-prompt-badge" class="block w-full bg-indigo-600 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">補筆芯</span>
                 </div>
             </button>
 
             <!-- 4. 原子筆 (Ballpoint Pen) -->
-            <button id="tool-pen" data-tool="pen" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-blue-900">
+            <button id="tool-pen" data-tool="pen" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-blue-900">
                     <span>🖋️ 原子筆</span>
                     <span class="text-red-600 font-bold hidden sm:inline">不可擦</span>
                 </div>
-                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-7 h-7 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <g transform="rotate(-35 32 32)">
                         <rect x="27" y="6" width="10" height="6" rx="2" fill="#1e40af"/>
                         <rect x="26" y="12" width="12" height="34" rx="3" fill="rgba(219, 234, 254, 0.85)" stroke="#2563eb" stroke-width="1.5"/>
@@ -329,17 +329,17 @@
                     </g>
                 </svg>
                 <div class="w-full text-center">
-                    <span class="block w-full bg-blue-700 text-white text-[8px] sm:text-[10px] font-bold py-0.5 rounded">簽名2x</span>
+                    <span class="block w-full bg-blue-700 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">簽名2x</span>
                 </div>
             </button>
 
             <!-- 5. 橡皮擦 (Eraser) -->
-            <button id="tool-eraser" data-tool="eraser" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-gray-800">
+            <button id="tool-eraser" data-tool="eraser" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-gray-800">
                     <span>🧽 橡皮擦</span>
                     <span id="eraser-size-text" class="text-teal-700 hidden sm:inline">100%</span>
                 </div>
-                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-7 h-7 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <g transform="rotate(-15 32 32)">
                         <rect x="14" y="16" width="36" height="32" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
                         <rect x="14" y="23" width="36" height="18" fill="#0284c7"/>
@@ -347,35 +347,35 @@
                         <rect x="14" y="35" width="36" height="6" fill="#0f172a"/>
                     </g>
                 </svg>
-                <div class="w-full flex items-center gap-0.5 sm:gap-1">
+                <div class="w-full flex items-center gap-1">
                     <div class="flex-1 h-1.5 bg-gray-300 rounded-full overflow-hidden">
                         <div id="eraser-size-bar" class="h-full bg-teal-500 transition-all" style="width: 100%;"></div>
                     </div>
-                    <span class="bg-teal-600 text-white text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded">擦拭</span>
+                    <span class="bg-teal-600 text-white text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded">擦拭</span>
                 </div>
             </button>
 
             <!-- 6. 小手 (滑動考卷 / 撥橡皮擦屑) -->
-            <button id="tool-hand" data-tool="hand" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-orange-900">
+            <button id="tool-hand" data-tool="hand" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-orange-900">
                     <span>✋ 小手</span>
                     <span class="text-orange-600 font-bold hidden sm:inline">捲動</span>
                 </div>
-                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-7 h-7 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <path d="M22 32V16a3 3 0 0 1 6 0v12h2V12a3 3 0 0 1 6 0v16h2V14a3 3 0 0 1 6 0v16h2V20a3 3 0 0 1 6 0v20c0 10-7 16-17 16h-4c-8 0-13-5-16-12l-3-7a3 3 0 0 1 5-3l5 5V32z" fill="#fed7aa" stroke="#c2410c" stroke-width="2" stroke-linejoin="round"/>
                 </svg>
                 <div class="w-full text-center">
-                    <span class="block w-full bg-orange-600 text-white text-[8px] sm:text-[10px] font-bold py-0.5 rounded">上下滑動</span>
+                    <span class="block w-full bg-orange-600 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">上下滑動</span>
                 </div>
             </button>
 
             <!-- 7. 計算草稿紙 (Scratchpad) -->
-            <button id="tool-scratchpad" data-tool="scratchpad" class="tool-slot bg-amber-50/90 rounded-xl p-1 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
-                <div class="w-full flex items-center justify-between text-[9px] sm:text-xs font-black text-amber-950">
+            <button id="tool-scratchpad" data-tool="scratchpad" class="col-span-2 sm:col-span-1 tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-amber-950">
                     <span>🗒️ 草稿紙</span>
-                    <span class="text-amber-700 font-bold hidden sm:inline">計算</span>
+                    <span class="text-amber-700 font-bold">計算紙</span>
                 </div>
-                <svg class="w-8 h-8 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
+                <svg class="w-7 h-7 sm:w-11 sm:h-11 my-0.5" viewBox="0 0 64 64">
                     <rect x="14" y="10" width="36" height="44" rx="3" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
                     <line x1="20" y1="20" x2="44" y2="20" stroke="#d97706" stroke-width="1.5"/>
                     <line x1="20" y1="28" x2="38" y2="28" stroke="#d97706" stroke-width="1.5"/>
@@ -383,7 +383,7 @@
                     <text x="32" y="48" font-size="9" font-weight="bold" fill="#92400e" text-anchor="middle">1+2=3</text>
                 </svg>
                 <div class="w-full text-center">
-                    <span id="scratchpad-badge" class="block w-full bg-amber-700 text-white text-[8px] sm:text-[10px] font-bold py-0.5 rounded">打開計算</span>
+                    <span id="scratchpad-badge" class="block w-full bg-amber-700 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">打開計算</span>
                 </div>
             </button>
 
