@@ -1045,6 +1045,7 @@
             isPlaying: false,
             gameMode: 'student', // 'student' | 'teacher' | 'mp_student' | 'mp_teacher'
             selectedGrade: '小一',
+            cheatCaughtCount: 0,
             currentSheet: 0,
             examSheets: generateRandomExamSheets(),
             activeTool: 'mech',
@@ -1665,7 +1666,8 @@
                     sfx.playClick();
                     // 每次使用小抄都重新判定，25% 機率被老師發現
                     if (Math.random() < 0.25) {
-                        showFloatingToast('🚨 被劉老師發現了！這次小抄不能看！', window.innerWidth / 2, Math.max(90, window.innerHeight * 0.28), '#dc2626');
+                        state.cheatCaughtCount = (state.cheatCaughtCount || 0) + 1;
+                        showFloatingToast(`🚨 被劉老師發現了！小抄違規累計 ${state.cheatCaughtCount} 次，結算時每次扣 3 分！`, window.innerWidth / 2, Math.max(90, window.innerHeight * 0.28), '#dc2626');
                         sfx.playSnap();
                         return;
                     }
@@ -2249,6 +2251,7 @@
             sfx.playClick();
 
             state.gameMode = mode;
+            state.cheatCaughtCount = 0;
             if (mode === 'student' && selectedGrade) state.selectedGrade = selectedGrade;
             // 小抄只允許單人普通學生考試使用，不出現在老師或雙人模式
             document.getElementById('cheat-sheet-btn').classList.toggle('hidden', mode !== 'student'); // 只在單人普通考試顯示，仍屬於底部道具組
@@ -2675,6 +2678,16 @@
                     row.innerHTML = `<span class="font-bold text-gray-800">第 ${q.num} 題 <span class="text-[10px] text-indigo-700">[${q.grade || '綜合'}]</span>（配分${q.points}分）</span><span class="${statusColor}">${statusText}</span>`;
                     breakdownEl.appendChild(row);
                 });
+            }
+
+            // 每次作弊被老師抓到，結算時扣 3 分
+            if (state.cheatCaughtCount > 0) {
+                const cheatPenalty = state.cheatCaughtCount * 3;
+                totalScore = Math.max(0, totalScore - cheatPenalty);
+                const row = document.createElement('div');
+                row.className = 'flex justify-between items-center bg-red-50 px-2 py-1 rounded border border-red-200 text-red-700 font-bold';
+                row.innerHTML = `<span>🚨 作弊小抄被老師發現 ${state.cheatCaughtCount} 次（每次扣 3 分）</span><span>-${cheatPenalty} 分</span>`;
+                breakdownEl.appendChild(row);
             }
 
             const totalCrumbs = (state.sheetCrumbs[0]?.length || 0) + (state.sheetCrumbs[1]?.length || 0);
