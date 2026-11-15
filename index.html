@@ -174,14 +174,9 @@
         <span id="crumb-warning-mobile" class="text-amber-300 font-bold hidden">⚠️ 擦屑過多！</span>
     </div>
 
-    <!-- 單人普通考試專用：作弊小抄入口 -->
-    <button id="cheat-sheet-btn" class="hidden fixed right-2 top-1/2 -translate-y-1/2 z-40 bg-amber-500 hover:bg-amber-400 active:scale-95 text-amber-950 font-black text-xs sm:text-sm px-2.5 py-3 rounded-xl shadow-xl border-2 border-amber-800/70" style="writing-mode: vertical-rl;" aria-label="使用作弊小抄">
-        📜 作弊小抄
-    </button>
-
     <!-- 小抄視窗：限制高度並可在手機內部捲動 -->
     <div id="cheat-sheet-modal" class="hidden fixed inset-0 z-[60] bg-black/65 flex items-center justify-center p-3 sm:p-5" style="padding-top: max(12px, env(safe-area-inset-top)); padding-bottom: max(12px, env(safe-area-inset-bottom));">
-        <section class="w-full max-w-md max-h-[min(82dvh,680px)] bg-[#fff9e9] border-4 border-amber-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <section class="w-full max-w-md max-h-[82vh] bg-[#fff9e9] border-4 border-amber-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden" style="max-height: min(82dvh, 680px);">
             <div class="shrink-0 bg-amber-800 text-amber-50 px-3 py-2.5 flex items-center justify-between gap-2">
                 <div class="min-w-0"><h2 class="font-black text-base sm:text-lg">📜 考場秘密小抄</h2><p class="text-[10px] sm:text-xs text-amber-200">偷偷看一下，別被劉老師抓到！</p></div>
                 <button id="close-cheat-sheet-btn" class="shrink-0 bg-red-600 hover:bg-red-500 text-white font-bold text-xs px-3 py-2 rounded-lg">✖ 收起</button>
@@ -255,9 +250,9 @@
         </div>
     </main>
 
-    <!-- 底部文具盒工具列 (學生模式 7 大文具) -->
+    <!-- 底部文具盒工具列 (學生模式 7 大文具 + 單人考試限定小抄道具) -->
     <footer id="student-toolbar" class="w-full bg-[#3d2514]/95 border-t-4 border-[#2b190d] px-2 py-1.5 sm:py-2.5 z-30 shrink-0 shadow-2xl">
-        <div class="max-w-5xl mx-auto grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2">
+        <div class="max-w-5xl mx-auto grid grid-cols-4 sm:grid-cols-8 gap-1.5 sm:gap-2">
             
             <!-- 1. 鉛筆 -->
             <button id="tool-pencil" data-tool="pencil" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
@@ -401,6 +396,18 @@
                 </svg>
                 <div class="w-full text-center">
                     <span id="scratchpad-badge" class="block w-full bg-amber-700 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">打開計算</span>
+                </div>
+            </button>
+
+            <!-- 8. 作弊小抄（僅單人普通考試顯示） -->
+            <button id="cheat-sheet-btn" data-tool="cheatsheet" class="hidden tool-slot bg-yellow-50/95 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-500 relative cursor-pointer active:scale-95 transition-transform min-w-0">
+                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-amber-950">
+                    <span>📜 作弊小抄</span>
+                    <span class="text-red-600 font-bold">25%風險</span>
+                </div>
+                <div class="text-2xl sm:text-4xl my-0.5" aria-hidden="true">📖</div>
+                <div class="w-full text-center">
+                    <span class="block w-full bg-amber-600 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">使用小抄</span>
                 </div>
             </button>
 
@@ -1497,6 +1504,18 @@
         document.querySelectorAll('#student-toolbar .tool-slot').forEach(btn => {
             btn.addEventListener('click', () => {
                 const t = btn.dataset.tool;
+                if (t === 'cheatsheet') {
+                    if (!state.isPlaying || state.gameMode !== 'student') return;
+                    sfx.playClick();
+                    // 每次使用小抄都重新判定，25% 機率被老師發現
+                    if (Math.random() < 0.25) {
+                        showFloatingToast('🚨 被劉老師發現了！這次小抄不能看！', window.innerWidth / 2, Math.max(90, window.innerHeight * 0.28), '#dc2626');
+                        sfx.playSnap();
+                        return;
+                    }
+                    document.getElementById('cheat-sheet-modal').classList.remove('hidden');
+                    return;
+                }
                 if (t === 'scratchpad') {
                     sfx.playClick();
                     toggleScratchpad();
@@ -2075,7 +2094,7 @@
 
             state.gameMode = mode;
             // 小抄只允許單人普通學生考試使用，不出現在老師或雙人模式
-            document.getElementById('cheat-sheet-btn').classList.toggle('hidden', mode !== 'student');
+            document.getElementById('cheat-sheet-btn').classList.toggle('hidden', mode !== 'student'); // 只在單人普通考試顯示，仍屬於底部道具組
             document.getElementById('cheat-sheet-modal').classList.add('hidden');
             state.isPlaying = true;
             state.currentSheet = 0;
@@ -2168,15 +2187,6 @@
             updateToolHintBanner();
         }
 
-        document.getElementById('cheat-sheet-btn').addEventListener('click', () => {
-            if (!state.isPlaying || state.gameMode !== 'student') return;
-            // 每次點擊使用小抄都重新判定，25% 機率被老師抓到
-            if (Math.random() < 0.25) {
-                alert('🚨 糟糕！你被劉老師發現正在偷看小抄！小抄被沒收，這次不能查看內容。');
-                return;
-            }
-            document.getElementById('cheat-sheet-modal').classList.remove('hidden');
-        });
         document.getElementById('close-cheat-sheet-btn').addEventListener('click', () => {
             document.getElementById('cheat-sheet-modal').classList.add('hidden');
         });
