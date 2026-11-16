@@ -505,7 +505,7 @@
 
     <!-- 底部老師批改工具列 -->
     <footer id="teacher-toolbar" class="hidden w-full bg-[#2c1a12]/95 border-t-4 border-[#1c0f0a] px-2 py-1.5 sm:py-2.5 z-30 shrink-0 shadow-2xl">
-        <div class="max-w-4xl mx-auto grid grid-cols-5 gap-1.5 sm:gap-3">
+        <div class="max-w-4xl mx-auto grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-3">
             <!-- 1. 紅筆打勾 -->
             <button id="t-tool-redpen" data-ttool="redpen" class="tool-slot active bg-rose-50 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-red-800/40 cursor-pointer">
                 <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-red-800">
@@ -555,7 +555,17 @@
                 <span class="block w-full bg-red-700 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded text-center">蓋劉老師章</span>
             </button>
 
-            <!-- 4. 立可帶 -->
+            <!-- 4. 好寶寶印章（可蓋在全隊／所有隊員的考卷上） -->
+            <button id="t-tool-goodbaby" data-ttool="goodbaby" class="tool-slot bg-emerald-50 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-emerald-800/40 cursor-pointer">
+                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-emerald-900">
+                    <span>🌟 好寶寶章</span>
+                    <span class="hidden sm:inline text-emerald-700">鼓勵</span>
+                </div>
+                <div class="w-7 h-7 sm:w-11 sm:h-11 my-0.5 rounded-full border-[3px] border-emerald-600 text-emerald-700 flex items-center justify-center font-black text-[9px] sm:text-xs rotate-[-10deg]">好寶寶</div>
+                <span class="block w-full bg-emerald-700 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded text-center">蓋好寶寶章</span>
+            </button>
+
+            <!-- 5. 立可帶 -->
             <button id="t-tool-eraser" data-ttool="eraser" class="tool-slot bg-slate-50 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-slate-500/40 cursor-pointer">
                 <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-slate-800">
                     <span>🧴 立可帶</span>
@@ -569,7 +579,7 @@
                 <span class="block w-full bg-slate-600 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded text-center">擦掉重改</span>
             </button>
 
-            <!-- 5. 小手 -->
+            <!-- 6. 小手 -->
             <button id="t-tool-hand" data-ttool="hand" class="tool-slot bg-orange-50 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-orange-800/40 cursor-pointer">
                 <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-orange-900">
                     <span>✋ 小手</span>
@@ -1406,17 +1416,29 @@
                 ctx.save();
                 ctx.translate(sp.x, sp.y);
                 ctx.rotate(-0.18);
-                ctx.strokeStyle = '#dc2626';
+                const isGoodBaby = sp.type === 'goodbaby';
+                const stampColor = isGoodBaby ? '#059669' : '#dc2626';
+                ctx.strokeStyle = stampColor;
                 ctx.lineWidth = 3;
-                ctx.strokeRect(-34, -18, 68, 36);
-                ctx.strokeStyle = 'rgba(220, 38, 38, 0.5)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(-30, -14, 60, 28);
-                ctx.fillStyle = '#dc2626';
-                ctx.font = '900 16px "Noto Serif TC", serif';
+                if (isGoodBaby) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 31, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 26, 0, Math.PI * 2);
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                } else {
+                    ctx.strokeRect(-34, -18, 68, 36);
+                    ctx.strokeStyle = 'rgba(220, 38, 38, 0.5)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(-30, -14, 60, 28);
+                }
+                ctx.fillStyle = stampColor;
+                ctx.font = isGoodBaby ? '900 13px "Noto Serif TC", serif' : '900 16px "Noto Serif TC", serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('劉老師', 0, 1);
+                ctx.fillText(isGoodBaby ? '好寶寶' : '劉老師', 0, 1);
                 ctx.restore();
             });
         }
@@ -1511,7 +1533,8 @@
         }
 
         function calculateStudentExpectedScore() {
-            let total = 0;
+            // 與學生結算使用同一套規則：題目得分 - 作弊扣分 - 卷面扣分，再套用 0~100 分上限。
+            let earnedTotal = 0;
             for (let s = 0; s < 2; s++) {
                 const questions = state.examSheets[s] || [];
                 const ansMap = state.sheetAnswers[s] || {};
@@ -1520,14 +1543,17 @@
                     if (!ans || !ans.answered) return;
                     if (q.type === 'bubble') {
                         if (ans.chosenIdx === q.correctIndex) {
-                            total += ans.pen === 'pen' ? Math.floor(q.points / 2) : q.points;
+                            earnedTotal += ans.pen === 'pen' ? Math.floor(q.points / 2) : q.points;
                         }
                     } else if (q.type === 'signature') {
-                        total += ans.pen === 'pen' ? q.points * 2 : q.points;
+                        earnedTotal += ans.pen === 'pen' ? q.points * 2 : q.points;
                     }
                 });
             }
-            return Math.min(100, total);
+            const cheatPenalty = Math.max(0, Number(state.cheatCaughtCount) || 0) * 3;
+            const totalCrumbs = (state.sheetCrumbs[0]?.length || 0) + (state.sheetCrumbs[1]?.length || 0);
+            const crumbsPenalty = totalCrumbs > 12 ? 5 : 0;
+            return Math.max(0, Math.min(100, Math.round(earnedTotal - cheatPenalty - crumbsPenalty)));
         }
 
         function updateStationeryUI() {
@@ -1580,6 +1606,8 @@
                     redpen: '🖍️ 目前手持：紅筆（在答對的題目上打大勾勾 ✓）',
                     bluepen: '🖊️ 目前手持：藍筆（在系統判定答錯的題目上打三角形 △）',
                     stamp: '💮 目前手持：劉老師印章（點擊考卷空白處蓋下【劉老師】印章！）',
+                    goodbaby: '🌟 目前手持：好寶寶章（可幫全隊／所有隊員蓋上鼓勵印章！）',
+                    goodbaby: '🌟 目前手持：好寶寶章（可幫全隊／所有隊員蓋上鼓勵印章！）',
                     eraser: '🧴 目前手持：立可帶（塗掉批改錯誤的紅藍筆跡）',
                     hand: '✋ 目前手持：小手（單指上下滑動檢視考卷上下半部）'
                 };
@@ -1602,7 +1630,7 @@
             const active = isTeacherRole() ? state.teacherTool : state.activeTool;
             const icons = {
                 pencil: '✏️', mech: '🖊️', pen: '🖋️', eraser: '🧽', hand: '✋',
-                redpen: '🖍️', bluepen: '🖊️', stamp: '💮'
+                redpen: '🖍️', bluepen: '🖊️', stamp: '💮', goodbaby: '🌟'
             };
             customCursor.innerHTML = `<span class="text-2xl">${icons[active] || '🖊️'}</span>`;
         }
@@ -1622,13 +1650,13 @@
                 return;
             }
 
-            if (isTeacher && active === 'stamp') {
+            if (isTeacher && (active === 'stamp' || active === 'goodbaby')) {
                 sfx.playStamp();
-                state.stamps.push({ x: pt.x, y: pt.y });
+                state.stamps.push({ x: pt.x, y: pt.y, type: active });
                 state.sheetStamps[state.currentSheet] = state.stamps;
                 updateAnsweredCounterUI();
                 redrawCanvas();
-                showFloatingToast('💮 蓋章：劉老師', e.clientX, e.clientY - 20, '#dc2626');
+                showFloatingToast(active === 'goodbaby' ? '🌟 蓋章：好寶寶！' : '💮 蓋章：劉老師', e.clientX, e.clientY - 20, active === 'goodbaby' ? '#059669' : '#dc2626');
                 return;
             }
 
@@ -1901,7 +1929,7 @@
                 : calculateStudentExpectedScore();
             teacherScoreInput.value = score;
             document.getElementById('teacher-score-badge').textContent = `得分：${score}`;
-            showFloatingToast(`💯 已自動結算：${score} 分`, window.innerWidth / 2, 90, '#dc2626');
+            showFloatingToast(`💯 已依照學生結算規則計算（含作弊與卷面扣分）：${score} 分`, window.innerWidth / 2, 90, '#dc2626');
         });
         teacherScoreInput.addEventListener('input', () => {
             const v = teacherScoreInput.value;
@@ -2858,7 +2886,8 @@
                 breakdownEl.appendChild(row);
             }
 
-            totalScore = Math.min(100, Math.round(totalScore));
+            // 上方已逐項扣除作弊與卷面扣分；此處只負責限制最終分數範圍，避免重複扣分。
+            totalScore = Math.max(0, Math.min(100, Math.round(totalScore)));
             document.getElementById('final-score-num').textContent = totalScore;
 
             const gradeBadge = document.getElementById('final-grade-badge');
