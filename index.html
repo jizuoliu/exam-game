@@ -270,12 +270,7 @@
                     <button id="close-cheat-sheet-btn" class="bg-red-700 hover:bg-red-600 text-white font-bold text-xs px-3 py-2 rounded-lg">✖ 收起</button>
                 </div>
             </div>
-            <div class="overflow-y-auto overscroll-contain p-3 sm:p-4 text-xs sm:text-sm text-amber-950 space-y-3">
-                <div class="bg-white/80 rounded-xl border border-amber-300 p-3"><h3 class="font-black text-amber-900 mb-1">➗ 數學速記</h3><ul class="list-disc pl-5 space-y-1"><li>平均分配：總數 ÷ 份數</li><li>公升換毫升：1 公升 = 1000 毫升</li><li>正三角形：三個內角都是 60°</li><li>圓周長：直徑 × 3.14，或半徑 × 2 × 3.14</li><li>分數加法：先通分，再相加分子</li><li>負負得正：減去負數等於加上正數</li></ul></div>
-                <div class="bg-white/80 rounded-xl border border-amber-300 p-3"><h3 class="font-black text-amber-900 mb-1">🌱 自然與生活</h3><ul class="list-disc pl-5 space-y-1"><li>植物光合作用會吸收二氧化碳</li><li>昆蟲有 6 隻腳；蜘蛛有 8 隻腳</li><li>磁鐵兩端的磁極磁力最強</li><li>粒線體負責細胞呼吸並產生能量</li></ul></div>
-                <div class="bg-white/80 rounded-xl border border-amber-300 p-3"><h3 class="font-black text-amber-900 mb-1">🗺️ 國語、社會與英文</h3><ul class="list-disc pl-5 space-y-1"><li>東的反義詞是西</li><li>台灣本島最南端：屏東縣</li><li>Library = 圖書館</li></ul></div>
-                <p class="text-center text-[10px] sm:text-xs text-red-700 font-bold">⚠️ 每次翻開小抄，都有 25% 機率被老師發現！</p>
-            </div>
+            <div id="cheat-sheet-content" class="overflow-y-auto overscroll-contain p-3 sm:p-4 text-xs sm:text-sm text-amber-950 space-y-3"></div>
         </section>
     </div>
 
@@ -2578,7 +2573,27 @@
             }
         }
 
+        function renderGradeCheatSheet() {
+            const grade = state.selectedGrade || '小一';
+            const notes = {
+                '小一': ['數學：先看清楚加號＋、減號－；加法是合起來，減法是拿走。', '國語：先讀完整句子，再找出題目問的人、事、物。', '生活：紅燈停、綠燈行；吃飯前要洗手。'],
+                '小二': ['數學：熟記九九乘法；1 小時 = 60 分鐘，1 公尺 = 100 公分。', '國語：找相反詞時，注意詞語意思是否相反。', '自然：蝴蝶、螞蟻等昆蟲有 6 隻腳；鳥類有羽毛。'],
+                '小三': ['數學：直式加減要注意個位、十位對齊；乘法可用九九乘法表。', '數學：1 公尺 = 100 公分；1 公斤 = 1000 公克。', '自然：水蒸發會變成水蒸氣；影子由光被物體遮住形成。'],
+                '小四': ['數學：分數加減先確認分母；同分母才能直接加減分子。', '數學：長方形面積 = 長 × 寬；周長要把四邊相加。', '自然：水有固態、液態、氣態；加熱可能使水蒸發。'],
+                '小五': ['數學：異分母分數加減先通分，再計算分子。', '數學：三角形內角和是 180°；長方體體積 = 長 × 寬 × 高。', '自然：植物行光合作用需要陽光、水和二氧化碳。'],
+                '小六': ['數學：比值可用前項 ÷ 後項；速度 = 距離 ÷ 時間。', '數學：圓周長 = 直徑 × 3.14；圓面積 = 半徑 × 半徑 × 3.14。', '自然：地球自轉造成晝夜；地球公轉與四季變化有關。'],
+                '國一': ['數學：移項時要做相反運算；負數相乘，同號得正、異號得負。', '數學：比例式可交叉相乘；平均數 = 總和 ÷ 個數。', '自然：細胞是生物構造與功能的基本單位；植物細胞有細胞壁。'],
+                '國二': ['數學：乘法公式：(a+b)² = a²+2ab+b²；注意平方不可漏掉。', '數學：直角三角形可用 a²+b²=c²；一次函數圖形是直線。', '自然：密度 = 質量 ÷ 體積；電壓、電流與電阻依歐姆定律關聯。']
+            };
+            const items = notes[grade] || notes['小一'];
+            document.getElementById('cheat-sheet-content').innerHTML = `
+                <div class="bg-amber-100 border border-amber-400 rounded-xl p-3 text-center"><div class="font-black text-amber-950 text-base">📚 ${grade} 專屬考試小抄</div><div class="text-[10px] text-amber-800">內容依照目前選擇的年級切換</div></div>
+                <div class="bg-white/85 rounded-xl border border-amber-300 p-3"><h3 class="font-black text-amber-900 mb-2">📝 本年級重點速記</h3><ul class="list-disc pl-5 space-y-2">${items.map(item => `<li>${item}</li>`).join('')}</ul></div>
+                <p class="text-center text-[10px] sm:text-xs text-red-700 font-bold">⚠️ 每次翻開小抄，都有 25% 機率被老師發現！</p>`;
+        }
+
         function openCheatSheetModal() {
+            renderGradeCheatSheet();
             const modal = document.getElementById('cheat-sheet-modal');
             const countdown = document.getElementById('cheat-sheet-countdown');
             stopCheatSheetTimers();
