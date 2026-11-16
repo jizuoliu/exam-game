@@ -242,7 +242,7 @@
             <div id="teacher-score-box" class="hidden items-center gap-1.5 bg-[#152622] px-2.5 py-1 rounded-lg border border-red-400/60">
                 <span class="text-xs font-bold text-red-300">💯 給分:</span>
                 <input id="teacher-score-input" type="number" min="0" max="150" placeholder="0~100" class="w-14 sm:w-16 bg-white text-red-700 font-black text-xs sm:text-sm px-1.5 py-0.5 rounded text-center focus:outline-none">
-                <button id="auto-calc-score-btn" class="bg-amber-600 hover:bg-amber-500 text-white text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded cursor-pointer" title="自動計算學生應得總分">算分</button>
+                <button id="auto-calc-score-btn" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-white text-[11px] sm:text-xs font-black px-2.5 py-1.5 rounded-lg cursor-pointer shadow border-b-2 border-amber-800 whitespace-nowrap" title="一鍵計算學生實際得分並自動填入分數">⚡一鍵算分</button>
             </div>
 
             <button id="submit-early-btn" class="bg-red-600 hover:bg-red-500 active:scale-95 text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow border-b-2 border-red-800 transition cursor-pointer">
@@ -1532,20 +1532,25 @@
             updateAnsweredCounterUI();
         }
 
-        function calculateStudentExpectedScore() {
-            // 與學生結算使用同一套規則：題目得分 - 作弊扣分 - 卷面扣分，再套用 0~100 分上限。
+        function calculateStudentScoreBreakdown() {
+            // 唯一計分來源：逐題得分，再扣作弊與卷面整潔分，避免老師算分和學生結算不一致。
             let earnedTotal = 0;
+            let correctCount = 0;
+            let answeredCount = 0;
             for (let s = 0; s < 2; s++) {
                 const questions = state.examSheets[s] || [];
                 const ansMap = state.sheetAnswers[s] || {};
                 questions.forEach(q => {
                     const ans = ansMap[q.id];
                     if (!ans || !ans.answered) return;
+                    answeredCount++;
                     if (q.type === 'bubble') {
                         if (ans.chosenIdx === q.correctIndex) {
+                            correctCount++;
                             earnedTotal += ans.pen === 'pen' ? Math.floor(q.points / 2) : q.points;
                         }
                     } else if (q.type === 'signature') {
+                        correctCount++;
                         earnedTotal += ans.pen === 'pen' ? q.points * 2 : q.points;
                     }
                 });
@@ -1553,7 +1558,12 @@
             const cheatPenalty = Math.max(0, Number(state.cheatCaughtCount) || 0) * 3;
             const totalCrumbs = (state.sheetCrumbs[0]?.length || 0) + (state.sheetCrumbs[1]?.length || 0);
             const crumbsPenalty = totalCrumbs > 12 ? 5 : 0;
-            return Math.max(0, Math.min(100, Math.round(earnedTotal - cheatPenalty - crumbsPenalty)));
+            const finalScore = Math.max(0, Math.min(100, Math.round(earnedTotal - cheatPenalty - crumbsPenalty)));
+            return { earnedTotal, cheatPenalty, crumbsPenalty, totalCrumbs, correctCount, answeredCount, finalScore };
+        }
+
+        function calculateStudentExpectedScore() {
+            return calculateStudentScoreBreakdown().finalScore;
         }
 
         function updateStationeryUI() {
@@ -1924,12 +1934,18 @@
         });
         document.getElementById('auto-calc-score-btn').addEventListener('click', () => {
             sfx.playClick();
-            const score = mp.roomData && state.gameMode === 'mp_teacher'
-                ? (mp.roomData.studentExpectedScore ?? calculateStudentExpectedScore())
-                : calculateStudentExpectedScore();
+            // 雙人老師端以學生交卷時同步過來的分數為準；單人老師端則讀取模擬學生作答。
+            const isMultiplayerTeacher = mp.roomData && state.gameMode === 'mp_teacher';
+            const details = calculateStudentScoreBreakdown();
+            const score = isMultiplayerTeacher
+                ? (Number.isFinite(Number(mp.roomData.studentExpectedScore)) ? Number(mp.roomData.studentExpectedScore) : details.finalScore)
+                : details.finalScore;
             teacherScoreInput.value = score;
             document.getElementById('teacher-score-badge').textContent = `得分：${score}`;
-            showFloatingToast(`💯 已依照學生結算規則計算（含作弊與卷面扣分）：${score} 分`, window.innerWidth / 2, 90, '#dc2626');
+            const detailText = isMultiplayerTeacher
+                ? `學生交卷分數 ${score} 分（以學生端結算紀錄為準）`
+                : `題目得分 ${details.earnedTotal} − 作弊 ${details.cheatPenalty} − 卷面 ${details.crumbsPenalty} = ${score} 分`;
+            showFloatingToast(`⚡ 一鍵算分完成！${detailText}`, window.innerWidth / 2, 90, '#dc2626');
         });
         teacherScoreInput.addEventListener('input', () => {
             const v = teacherScoreInput.value;
