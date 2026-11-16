@@ -120,7 +120,7 @@
             }
         }
 
-        /* 老師判定按鈕需浮在透明畫布上方，確保滑鼠與觸控都能點擊 */
+        /* 老師批改資訊顯示在透明畫布上方，確保答案結果清楚可見 */
         .teacher-judgment { position: relative; z-index: 30; pointer-events: auto; }
         .teacher-judgment button { position: relative; z-index: 31; pointer-events: auto; touch-action: manipulation; }
 
@@ -528,7 +528,7 @@
                 <span class="block w-full bg-red-600 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded text-center">答對打勾</span>
             </button>
 
-            <!-- 2. 藍筆找錯 -->
+            <!-- 2. 藍筆打三角形 -->
             <button id="t-tool-bluepen" data-ttool="bluepen" class="tool-slot bg-sky-50 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-blue-800/40 cursor-pointer">
                 <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-blue-900">
                     <span>🖊️ 藍筆</span>
@@ -540,9 +540,9 @@
                         <polygon points="26,44 38,44 32,58" fill="#93c5fd"/>
                         <circle cx="32" cy="59" r="1.8" fill="#1e3a8a"/>
                     </g>
-                    <circle cx="30" cy="34" r="14" fill="none" stroke="#2563eb" stroke-width="3.5" stroke-dasharray="4 3"/>
+                    <path d="M30 17 L48 47 H12 Z" fill="none" stroke="#2563eb" stroke-width="3.5" stroke-linejoin="round" stroke-dasharray="4 3"/>
                 </svg>
-                <span class="block w-full bg-blue-600 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded text-center">圈出錯誤</span>
+                <span class="block w-full bg-blue-600 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded text-center">錯誤打三角</span>
             </button>
 
             <!-- 3. 劉老師印章 -->
@@ -1157,7 +1157,6 @@
             currentStroke: null,
             
             sheetAnswers: [{}, {}],
-            teacherJudgments: [{}, {}], // 每題老師判定：wrong / correct
             simStudentInfo: null,
             targetRects: [],
             lastPointerPos: null,
@@ -1278,23 +1277,36 @@
                     </div>`;
                 }
 
-                // 老師閱卷時，在每題下方顯示標準答案；學生模式絕不顯示，避免洩題。
+                // 老師閱卷時由系統自動比對學生答案；老師只需用紅筆打勾、藍筆打三角形。
                 let teacherAnswerHtml = '';
                 if (isTeacherRole()) {
                     const answerText = q.type === 'bubble'
                         ? `${['A', 'B', 'C', 'D'][q.correctIndex] || '?'}：${(q.options?.[q.correctIndex] || '').replace(/^\([A-D]\)\s*/, '')}`
-                        : '完成簽名即可';
-                    teacherAnswerHtml = `<div class="teacher-answer-mobile mt-2 rounded border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] sm:text-xs font-bold text-emerald-800">✅ 標準答案：${answerText}</div>`;
-                    const judgment = state.teacherJudgments[state.currentSheet]?.[q.id] || '';
-                    teacherAnswerHtml += `
-                        <div class="teacher-judgment mt-2 rounded-lg border border-slate-200 bg-slate-50 p-2" data-judgment-card="${q.id}">
-                            <div class="text-[11px] font-bold text-slate-600 mb-1.5">老師判定這題：</div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button type="button" data-teacher-judgment="correct" data-qid="${q.id}" class="rounded-lg border-2 px-2 py-2 text-xs sm:text-sm font-black transition ${judgment === 'correct' ? 'border-emerald-600 bg-emerald-100 text-emerald-800' : 'border-slate-300 bg-white text-slate-600'}">✓ 沒錯</button>
-                                <button type="button" data-teacher-judgment="wrong" data-qid="${q.id}" class="rounded-lg border-2 px-2 py-2 text-xs sm:text-sm font-black transition ${judgment === 'wrong' ? 'border-blue-600 bg-blue-100 text-blue-800' : 'border-slate-300 bg-white text-slate-600'}">△ 有錯</button>
-                            </div>
-                            <div class="mt-1.5 text-[11px] font-bold ${judgment === 'wrong' ? 'text-blue-700' : judgment === 'correct' ? 'text-emerald-700' : 'text-slate-400'}" data-judgment-status="${q.id}">${judgment === 'wrong' ? '🔵 藍筆：已標記三角形（此題有錯）' : judgment === 'correct' ? '✓ 已判定：此題沒錯' : '尚未判定'}</div>
-                        </div>`;
+                        : '在簽名框內完成簽名';
+                    const studentAnswer = state.sheetAnswers[state.currentSheet]?.[q.id];
+                    let resultHtml = '';
+                    if (q.type === 'bubble') {
+                        if (studentAnswer?.answered && Number.isInteger(studentAnswer.chosenIdx)) {
+                            const chosen = studentAnswer.chosenIdx;
+                            const chosenText = `${['A', 'B', 'C', 'D'][chosen] || '?'}：${(q.options?.[chosen] || '').replace(/^\([A-D]\)\s*/, '')}`;
+                            const isCorrect = chosen === q.correctIndex;
+                            const penWarning = studentAnswer.pen === 'pen'
+                                ? '<div class="mt-1 text-amber-700">⚠️ 使用原子筆作答，仍會依規則扣分</div>'
+                                : '';
+                            resultHtml = `<div class="mt-1 text-slate-700">學生答案：${chosenText}</div>
+                                <div class="mt-1 font-black ${isCorrect ? 'text-emerald-700' : 'text-red-700'}">系統判定：${isCorrect ? '✓ 答對（請用紅筆打勾）' : '✗ 答錯（請用藍筆打三角形）'}</div>${penWarning}`;
+                        } else {
+                            resultHtml = '<div class="mt-1 font-bold text-amber-700">系統判定：學生尚未作答，無法判定</div>';
+                        }
+                    } else {
+                        resultHtml = studentAnswer?.answered
+                            ? '<div class="mt-1 font-black text-emerald-700">系統判定：已完成簽名（請用紅筆打勾）</div>'
+                            : '<div class="mt-1 font-bold text-amber-700">系統判定：尚未簽名</div>';
+                    }
+                    teacherAnswerHtml = `<div class="teacher-answer-mobile mt-2 rounded border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-[11px] sm:text-xs">
+                        <div class="font-bold text-emerald-800">📖 標準答案：${answerText}</div>
+                        <div class="mt-1 border-t border-emerald-200 pt-1">${resultHtml}</div>
+                    </div>`;
                 }
 
                 card.innerHTML = `
@@ -1456,10 +1468,11 @@
                 let chosenIdx = q.correctIndex ?? 0;
                 let penType = 'mech';
 
-                if (presetAnswers && presetAnswers[q.id]) {
-                    if (!presetAnswers[q.id].answered) return;
-                    chosenIdx = presetAnswers[q.id].chosenIdx;
-                    penType = presetAnswers[q.id].pen || 'mech';
+                if (presetAnswers) {
+                    const savedAnswer = presetAnswers[q.id];
+                    if (!savedAnswer || !savedAnswer.answered) return;
+                    chosenIdx = savedAnswer.chosenIdx;
+                    penType = savedAnswer.pen || 'mech';
                 } else {
                     const makeMistake = Math.random() < 0.35;
                     if (q.type === 'bubble') {
@@ -1543,9 +1556,8 @@
             if (isTeacherRole()) {
                 const marks = [...(state.sheetStrokes[0] || []), ...(state.sheetStrokes[1] || [])]
                     .filter(s => s.tool === 'redpen' || s.tool === 'bluepen').length;
-                const judgments = state.teacherJudgments.reduce((n, map) => n + Object.keys(map || {}).length, 0);
                 const stamps = (state.sheetStamps[0]?.length || 0) + (state.sheetStamps[1]?.length || 0);
-                document.getElementById('answered-count-display').textContent = `判定 ${judgments}/8 題 · 批改 ${marks} 筆 · 章 ${stamps} 枚`;
+                document.getElementById('answered-count-display').textContent = `批改筆跡 ${marks} 筆 · 印章 ${stamps} 枚`;
                 return;
             }
             let count = 0;
@@ -1571,7 +1583,7 @@
             if (isTeacherRole()) {
                 const map = {
                     redpen: '🖍️ 目前手持：紅筆（在答對的題目上打大勾勾 ✓）',
-                    bluepen: '🖊️ 目前手持：藍筆（圈出學生寫錯或違規用筆的題目）',
+                    bluepen: '🖊️ 目前手持：藍筆（在系統判定答錯的題目上打三角形 △）',
                     stamp: '💮 目前手持：劉老師印章（點擊考卷空白處蓋下【劉老師】印章！）',
                     eraser: '🧴 目前手持：立可帶（塗掉批改錯誤的紅藍筆跡）',
                     hand: '✋ 目前手持：小手（單指上下滑動檢視考卷上下半部）'
@@ -1862,20 +1874,6 @@
                 updateToolHintBanner();
                 updateCursorAppearance();
             });
-        });
-
-        // 老師直接點選每題下方的「沒錯 / 有錯」判定；有錯時以藍色三角形標記。
-        questionsContainer.addEventListener('click', (event) => {
-            const btn = event.target.closest('[data-teacher-judgment]');
-            if (!btn || !isTeacherRole()) return;
-            const qid = btn.dataset.qid;
-            const judgment = btn.dataset.teacherJudgment;
-            if (!qid || !['correct', 'wrong'].includes(judgment)) return;
-            if (!state.teacherJudgments[state.currentSheet]) state.teacherJudgments[state.currentSheet] = {};
-            state.teacherJudgments[state.currentSheet][qid] = judgment;
-            sfx.playClick();
-            renderQuestions();
-            updateAnsweredCounterUI();
         });
 
         document.getElementById('next-sheet-btn').addEventListener('click', () => {
@@ -2304,7 +2302,7 @@
                     const overlay = document.getElementById('mp-overlay-banner');
                     document.getElementById('mp-overlay-icon').textContent = '💮';
                     document.getElementById('mp-overlay-title').textContent = `學生已交卷！請交給【${data.teacherName}】`;
-                    document.getElementById('mp-overlay-desc').textContent = `請把螢幕交給【${data.teacherName}（劉老師）】，用紅筆打勾、藍筆找錯並蓋上【劉老師】印章！`;
+                    document.getElementById('mp-overlay-desc').textContent = `請把螢幕交給【${data.teacherName}（劉老師）】，用紅筆打勾、藍筆打三角形並蓋上【劉老師】印章！`;
                     document.getElementById('mp-overlay-role-card').classList.remove('hidden');
                     const actionBtn = document.getElementById('mp-overlay-action-btn');
                     actionBtn.classList.remove('hidden');
@@ -2315,6 +2313,8 @@
                         const parsedAns = data.studentAnswers || [{}, {}];
                         populateSimulatedStudentSheet(1, parsedAns[1]);
                         populateSimulatedStudentSheet(0, parsedAns[0]);
+                        renderQuestions();
+                        updateAnsweredCounterUI();
                     };
                     overlay.classList.remove('hidden');
                     return;
@@ -2329,6 +2329,8 @@
                     const parsedAns = data.studentAnswers || [{}, {}];
                     populateSimulatedStudentSheet(1, parsedAns[1]);
                     populateSimulatedStudentSheet(0, parsedAns[0]);
+                    renderQuestions();
+                    updateAnsweredCounterUI();
                     showFloatingToast(`📨 收到「${data.studentName}」的考卷，請開始批改！`, paperStage.clientWidth / 2, 80, '#dc2626');
                 } else {
                     document.getElementById('mp-overlay-icon').textContent = '💮';
@@ -2435,7 +2437,6 @@
             state.crumbs = [];
             state.stamps = [];
             state.sheetAnswers = [{}, {}];
-            state.teacherJudgments = [{}, {}];
             scratchStrokes = [];
             toggleScratchpad(false);
 
@@ -2462,13 +2463,13 @@
                 if (mode === 'mp_teacher' && mp.roomData) {
                     document.getElementById('paper-student-info').textContent = `考生：${mp.roomData.studentName}`;
                     document.getElementById('paper-rule-subtitle').innerHTML =
-                        `👨‍🏫 <strong>劉老師批改中</strong>：第1~6題每題 12 分、第7~8題每題 14 分！請用紅筆打勾、藍筆圈錯、輸入分數並蓋【劉老師】印章！`;
+                        `👨‍🏫 <strong>劉老師批改中</strong>：第1~6題每題 12 分、第7~8題每題 14 分！請用紅筆打勾、藍筆打三角形、輸入分數並蓋【劉老師】印章！`;
                 } else {
                     const simStudent = SIM_STUDENT_NAMES[Math.floor(Math.random() * SIM_STUDENT_NAMES.length)];
                     state.simStudentInfo = simStudent;
                     document.getElementById('paper-student-info').textContent = `考生：${simStudent.cls}`;
                     document.getElementById('paper-rule-subtitle').innerHTML =
-                        `👨‍🏫 <strong>閱卷規則</strong>：第1~6題每題 12 分、第7~8題每題 14 分（違規用筆扣一半）！請紅筆打勾、藍筆圈錯、輸入分數並蓋章！`;
+                        `👨‍🏫 <strong>閱卷規則</strong>：第1~6題每題 12 分、第7~8題每題 14 分（違規用筆扣一半）！請紅筆打勾、藍筆打三角形、輸入分數並蓋章！`;
                 }
 
                 renderQuestions();
@@ -2477,6 +2478,7 @@
                         populateSimulatedStudentSheet(1);
                         populateSimulatedStudentSheet(0);
                         state.strokes = state.sheetStrokes[0];
+                        renderQuestions();
                         redrawCanvas();
                     });
                 }
@@ -2746,7 +2748,7 @@
                 }
 
                 if (totalRed > 0 && totalBlue > 0) {
-                    logs.push(`✅ 同時使用紅筆打勾（${totalRed} 筆）與藍筆找錯（${totalBlue} 筆），批改超仔細！`);
+                    logs.push(`✅ 同時使用紅筆打勾（${totalRed} 筆）與藍筆打三角形（${totalBlue} 筆），批改超仔細！`);
                 } else {
                     teacherPerf -= 15;
                     logs.push(`⚠️ 建議同時用紅筆打勾對題、藍筆圈出錯題（-15 分）`);
@@ -2781,7 +2783,7 @@
                 });
 
                 document.getElementById('teacher-comment').textContent =
-                    `教務處回饋：「劉老師辛苦了！學生類型為【${state.simStudentInfo?.desc || '一般考生'}】，多善用紅筆打勾、藍筆圈錯並蓋上【劉老師】印章，學生一定能把錯誤訂正得清清楚楚！」`;
+                    `教務處回饋：「劉老師辛苦了！學生類型為【${state.simStudentInfo?.desc || '一般考生'}】，多善用紅筆打勾、藍筆打三角形並蓋上【劉老師】印章，學生一定能把錯誤訂正得清清楚楚！」`;
 
                 modal.classList.remove('hidden');
                 return;
