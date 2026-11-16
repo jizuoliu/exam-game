@@ -224,7 +224,7 @@
             </div>
             <div class="bg-[#152622] px-2.5 py-1 rounded-lg border border-emerald-700/50 flex items-center gap-1.5">
                 <span id="status-label-text" class="text-xs text-emerald-300 font-bold">📋 作答狀態:</span>
-                <span id="answered-count-display" class="font-bold text-xs sm:text-sm text-amber-200">已寫 0 / 8 題</span>
+                <span id="answered-count-display" class="font-bold text-xs sm:text-sm text-amber-200">已寫 0 / 11 題</span>
             </div>
         </div>
 
@@ -288,7 +288,7 @@
                         <h1 class="font-exam font-black text-sm sm:text-xl text-gray-900 tracking-wide">國民定期評量 — 綜合能力測驗</h1>
                     </div>
                     <p id="paper-rule-subtitle" class="text-[10px] sm:text-xs text-gray-600 mt-0.5 font-medium">
-                        ⚠️ 共 8 題，<strong>第1~6題每題 12 分、第7~8題每題 14 分（錯一題依配分扣分）</strong>；選擇題限用<strong class="text-gray-900 underline">鉛筆/自動筆</strong>畫卡！
+                        ⚠️ 共 11 題（9 題選擇題＋簽名題＋隨機加分題），選擇題每題 10 分、簽名題 10 分；選擇題限用<strong class="text-gray-900 underline">鉛筆/自動筆</strong>畫卡！
                     </p>
                 </div>
                 <div class="flex items-center gap-2 text-[11px] sm:text-xs font-exam border border-gray-700 px-2 py-0.5 sm:px-2.5 sm:py-1 bg-white/80">
@@ -773,7 +773,7 @@
             <div class="flex items-baseline gap-3 mb-3">
                 <span class="text-sm font-bold text-gray-600">總得分：</span>
                 <span id="final-score-num" class="font-exam text-5xl font-black text-[#d93829]">0</span>
-                <span class="text-lg font-bold text-gray-700">/ 100 分</span>
+                <span class="text-lg font-bold text-gray-700">/ 115 分</span>
                 <span id="final-grade-badge" class="ml-auto px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800">評語計算中</span>
             </div>
 
@@ -1108,25 +1108,28 @@
             { grade: "國二", subject: "理化", type: 'bubble', text: "水在標準大氣壓下的沸點約為？", options: ["(A) 0°C", "(B) 50°C", "(C) 100°C", "(D) 150°C"], correctIndex: 2 },
         ];
 
+
+        const BONUS_ART_REFERENCES = {
+            milkEgg: "data:image/jpeg;base64,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",
+            milkFrog: "data:image/jpeg;base64,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"
+        };
+
         const ALL_GRADES = Object.keys({"小一": 1, "小二": 1, "小三": 1, "小四": 1, "小五": 1, "小六": 1, "國一": 1, "國二": 1});
 
         function generateRandomExamSheets(selectedGrade = null) {
-            // 單人模式可依年級篩選；雙人與老師模式不傳年級，維持全題庫隨機。
             const pool = selectedGrade ? QUESTION_BANK.filter(q => q.grade === selectedGrade) : QUESTION_BANK;
             const shuffled = [...pool].sort(() => Math.random() - 0.5);
-            const selected = shuffled.slice(0, 7);
-            const page1 = [
-                { id: 'q1', num: 1, points: 12, ...selected[0] },
-                { id: 'q2', num: 2, points: 12, ...selected[1] },
-                { id: 'q3', num: 3, points: 12, ...selected[2] },
-                { id: 'q4', num: 4, points: 12, ...selected[3] }
-            ];
-            const page2 = [
-                { id: 'q5', num: 5, points: 12, ...selected[4] },
-                { id: 'q6', num: 6, points: 12, ...selected[5] },
-                { id: 'q7', num: 7, points: 14, ...selected[6] },
-                { id: 'q8', num: 8, points: 14, grade: '考規', subject: '考生切結', type: 'signature', text: '【考場誠信切結】請在下方框內親筆簽名（用原子筆簽名可享 2 倍加分！）' }
-            ];
+            const selected = shuffled.slice(0, 9);
+            const bonusKind = Math.random() < 0.5 ? 'milkEgg' : 'milkFrog';
+            const bonus = bonusKind === 'milkEgg'
+                ? { id: 'q11', num: 11, points: 3, grade: '加分題', subject: '奶蛋', type: 'bonus', bonusKind, text: '請參考圖片，在下方空白框內畫出一顆奶蛋！完成圖畫即可獲得 3 分。' }
+                : { id: 'q11', num: 11, points: 5, grade: '加分題', subject: '奶蛙', type: 'bonus', bonusKind, text: '請參考圖片，在下方空白框內畫出一隻奶蛙！完成圖畫即可獲得 5 分。' };
+            const page1 = selected.slice(0, 5).map((q, i) => ({ id: `q${i + 1}`, num: i + 1, points: 10, ...q }));
+            const page2 = selected.slice(5, 9).map((q, i) => ({ id: `q${i + 6}`, num: i + 6, points: 10, ...q }));
+            page2.push(
+                { id: 'q10', num: 10, points: 10, grade: '考規', subject: '考生切結', type: 'signature', text: '【考場誠信切結】請在下方框內親筆簽名（用原子筆簽名可享 2 倍加分！）' },
+                bonus
+            );
             return [page1, page2];
         }
         // ==========================================
@@ -1269,10 +1272,21 @@
                             </div>
                         `).join('')}
                     </div>`;
-                } else {
+                } else if (q.type === 'signature') {
                     optionsHtml = `<div class="mt-2">
-                        <div data-qid="${q.id}" data-opt-idx="0" class="answer-target w-full h-12 border-2 border-dashed border-gray-600 rounded bg-amber-50/50 flex items-center justify-center text-xs text-gray-400 font-exam">
-                            請在此框內親筆簽名
+                        <div data-qid="${q.id}" data-opt-idx="0" class="answer-target w-full h-12 border-2 border-dashed border-gray-600 rounded bg-amber-50/50 flex items-center justify-center text-xs text-gray-400 font-exam">請在此框內親筆簽名</div>
+                    </div>`;
+                } else if (q.type === 'bonus') {
+                    const refImg = BONUS_ART_REFERENCES[q.bonusKind];
+                    const altText = q.bonusKind === 'milkEgg' ? '奶蛋參考圖' : '奶蛙參考圖';
+                    optionsHtml = `<div class="mt-2 grid grid-cols-2 gap-2 items-stretch">
+                        <div class="rounded border border-amber-300 bg-amber-50 p-1.5 flex flex-col items-center justify-center">
+                            <div class="text-[11px] font-black text-amber-900 mb-1">🖼️ 參考圖片</div>
+                            <img src="${refImg}" alt="${altText}" class="max-h-36 max-w-full object-contain rounded">
+                        </div>
+                        <div class="rounded border-2 border-dashed border-amber-600 bg-white p-1.5 flex flex-col">
+                            <div class="text-[11px] font-black text-amber-900 text-center mb-1">✏️ 在這裡畫</div>
+                            <div data-qid="${q.id}" data-opt-idx="0" class="answer-target bonus-draw-area flex-1 min-h-[116px] rounded bg-amber-50/40 flex items-center justify-center text-xs text-gray-400 text-center px-2">用鉛筆或自動筆畫出你的作品</div>
                         </div>
                     </div>`;
                 }
@@ -1282,7 +1296,7 @@
                 if (isTeacherRole()) {
                     const answerText = q.type === 'bubble'
                         ? `${['A', 'B', 'C', 'D'][q.correctIndex] || '?'}：${(q.options?.[q.correctIndex] || '').replace(/^\([A-D]\)\s*/, '')}`
-                        : '在簽名框內完成簽名';
+                        : q.type === 'signature' ? '在簽名框內完成簽名' : `完成${q.bonusKind === 'milkEgg' ? '奶蛋' : '奶蛙'}圖畫`;
                     const studentAnswer = state.sheetAnswers[state.currentSheet]?.[q.id];
                     let resultHtml = '';
                     if (q.type === 'bubble') {
@@ -1298,10 +1312,14 @@
                         } else {
                             resultHtml = '<div class="mt-1 font-bold text-amber-700">系統判定：學生尚未作答，無法判定</div>';
                         }
-                    } else {
+                    } else if (q.type === 'signature') {
                         resultHtml = studentAnswer?.answered
                             ? '<div class="mt-1 font-black text-emerald-700">系統判定：已完成簽名（請用紅筆打勾）</div>'
                             : '<div class="mt-1 font-bold text-amber-700">系統判定：尚未簽名</div>';
+                    } else {
+                        resultHtml = studentAnswer?.answered
+                            ? `<div class="mt-1 font-black text-emerald-700">系統判定：已完成圖畫（加 ${q.points} 分）</div>`
+                            : '<div class="mt-1 font-bold text-amber-700">系統判定：尚未完成圖畫</div>';
                     }
                     teacherAnswerHtml = `<div class="teacher-answer-mobile mt-2 rounded border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-[11px] sm:text-xs">
                         <div class="font-bold text-emerald-800">📖 標準答案：${answerText}</div>
@@ -1454,11 +1472,9 @@
                     if (pt.x >= t.x - 4 && pt.x <= t.x + t.w + 4 && pt.y >= t.y - 4 && pt.y <= t.y + t.h + 4) {
                         const q = questions.find(item => item.id === t.qid);
                         if (q) {
-                            state.sheetAnswers[state.currentSheet][q.id] = {
-                                answered: true,
-                                chosenIdx: t.optIdx,
-                                pen: stroke.tool
-                            };
+                            state.sheetAnswers[state.currentSheet][q.id] = q.type === 'bonus'
+                                ? { answered: true, pen: stroke.tool }
+                                : { answered: true, chosenIdx: t.optIdx, pen: stroke.tool };
                             updateAnsweredCounterUI();
                         }
                     }
@@ -1494,10 +1510,14 @@
                         if (state.simStudentInfo?.cls.includes('調皮') && idx === 1) {
                             penType = 'pen';
                         }
-                    } else {
+                    } else if (q.type === 'signature') {
                         penType = Math.random() < 0.6 ? 'pen' : 'mech';
+                        ansMap[q.id] = { answered: true, chosenIdx, pen: penType };
+                    } else if (q.type === 'bonus') {
+                        if (Math.random() < 0.65) ansMap[q.id] = { answered: true, pen: 'pencil' };
+                        else return;
                     }
-                    ansMap[q.id] = { answered: true, chosenIdx, pen: penType };
+                    if (q.type === 'bubble') ansMap[q.id] = { answered: true, chosenIdx, pen: penType };
                 }
 
                 const strokeColor = penType === 'pen' ? '#1d4ed8' : '#334155';
@@ -1547,13 +1567,16 @@
                     } else if (q.type === 'signature') {
                         correctCount++;
                         earnedTotal += ans.pen === 'pen' ? q.points * 2 : q.points;
+                    } else if (q.type === 'bonus') {
+                        correctCount++;
+                        earnedTotal += q.points;
                     }
                 });
             }
             const cheatPenalty = Math.max(0, Number(state.cheatCaughtCount) || 0) * 3;
             const totalCrumbs = (state.sheetCrumbs[0]?.length || 0) + (state.sheetCrumbs[1]?.length || 0);
             const crumbsPenalty = totalCrumbs > 12 ? 5 : 0;
-            const finalScore = Math.max(0, Math.min(100, Math.round(earnedTotal - cheatPenalty - crumbsPenalty)));
+            const finalScore = Math.max(0, Math.min(115, Math.round(earnedTotal - cheatPenalty - crumbsPenalty)));
             return { earnedTotal, cheatPenalty, crumbsPenalty, totalCrumbs, correctCount, answeredCount, finalScore };
         }
 
@@ -1591,7 +1614,7 @@
                 const map = state.sheetAnswers[s] || {};
                 count += Object.values(map).filter(v => v && v.answered).length;
             }
-            document.getElementById('answered-count-display').textContent = `已寫 ${count} / 8 題`;
+            document.getElementById('answered-count-display').textContent = `已寫 ${count} / 11 題`;
         }
 
         function updateNeatnessUI() {
@@ -2251,7 +2274,7 @@
             const overlay = document.getElementById('mp-overlay-banner');
             document.getElementById('mp-overlay-icon').textContent = '🎲';
             document.getElementById('mp-overlay-title').textContent = '📱 同機雙人接力：角色抽籤完成！';
-            document.getElementById('mp-overlay-desc').textContent = `請先交給【${d.studentName}（學生）】作答正反面 8 題，交卷後再把手機/電腦交給【${d.teacherName}（劉老師）】批改！`;
+            document.getElementById('mp-overlay-desc').textContent = `請先交給【${d.studentName}（學生）】作答正反面 11 題，交卷後再把手機/電腦交給【${d.teacherName}（劉老師）】批改！`;
             document.getElementById('mp-role-student-name').textContent = d.studentName;
             document.getElementById('mp-role-teacher-name').textContent = d.teacherName;
             document.getElementById('mp-overlay-role-card').classList.remove('hidden');
@@ -2310,7 +2333,7 @@
                     ? '🎲 抽籤結果：你是【考生學生】！'
                     : '🎲 抽籤結果：你是【閱卷劉老師】！';
                 document.getElementById('mp-overlay-desc').textContent = amIStudent
-                    ? '請認真作答正反兩面共 8 題（小一～國一隨機題庫），少失誤才能拿高分！寫完按右上角「交卷給老師」！'
+                    ? '請認真作答正反兩面共 11 題（含最後隨機加分題），少失誤才能拿高分！寫完按右上角「交卷給老師」！'
                     : `好友「${data.studentName}」正在奮筆疾書寫考卷中！等他交卷後，就換你拿起紅筆、藍筆與【劉老師】印章抓出他的失誤！`;
                 document.getElementById('mp-role-student-name').textContent = data.studentName;
                 document.getElementById('mp-role-teacher-name').textContent = data.teacherName;
@@ -2497,13 +2520,13 @@
                 if (mode === 'mp_teacher' && mp.roomData) {
                     document.getElementById('paper-student-info').textContent = `考生：${mp.roomData.studentName}`;
                     document.getElementById('paper-rule-subtitle').innerHTML =
-                        `👨‍🏫 <strong>劉老師批改中</strong>：第1~6題每題 12 分、第7~8題每題 14 分！請用紅筆打勾、藍筆打三角形、輸入分數並蓋【劉老師】印章！`;
+                        `👨‍🏫 <strong>劉老師批改中</strong>：9 題選擇題每題 10 分、簽名題 10 分，最後另有隨機加分題！請用紅筆打勾、藍筆打三角形、輸入分數並蓋【劉老師】印章！`;
                 } else {
                     const simStudent = SIM_STUDENT_NAMES[Math.floor(Math.random() * SIM_STUDENT_NAMES.length)];
                     state.simStudentInfo = simStudent;
                     document.getElementById('paper-student-info').textContent = `考生：${simStudent.cls}`;
                     document.getElementById('paper-rule-subtitle').innerHTML =
-                        `👨‍🏫 <strong>閱卷規則</strong>：第1~6題每題 12 分、第7~8題每題 14 分（違規用筆扣一半）！請紅筆打勾、藍筆打三角形、輸入分數並蓋章！`;
+                        `👨‍🏫 <strong>閱卷規則</strong>：9 題選擇題每題 10 分、簽名題 10 分（違規用筆扣一半），另有隨機加分題！請紅筆打勾、藍筆打三角形、輸入分數並蓋章！`;
                 }
 
                 renderQuestions();
@@ -2532,7 +2555,7 @@
                     ? `考生：${mp.roomData.studentName}`
                     : '班級：六年甲班 27號';
                 document.getElementById('paper-rule-subtitle').innerHTML =
-                    `⚠️ 共 8 題，<strong>第1~6題每題 12 分、第7~8題每題 14 分（錯一題依配分扣分）</strong>；選擇題限用<strong class="text-gray-900 underline">鉛筆/自動筆</strong>畫卡！`;
+                    `⚠️ 共 11 題（9 題選擇題＋簽名題＋隨機加分題），選擇題每題 10 分、簽名題 10 分；選擇題限用<strong class="text-gray-900 underline">鉛筆/自動筆</strong>畫卡！`;
 
                 renderQuestions();
             }
@@ -2720,6 +2743,7 @@
                         if (!ans || !ans.answered) studentMistakes++;
                         else if (q.type === 'bubble' && (ans.chosenIdx !== q.correctIndex || ans.pen === 'pen')) studentMistakes++;
                         else if (q.type === 'signature' && ans.pen !== 'pen') studentMistakes++;
+                        else if (q.type === 'bonus' && !ans.answered) studentMistakes++;
                     });
                 }
 
@@ -2889,6 +2913,10 @@
                             statusText = `✅ 已簽名（+${q.points} 分）`;
                             statusColor = 'text-emerald-700';
                         }
+                    } else if (q.type === 'bonus') {
+                        earned = q.points;
+                        statusText = `🎨 完成${q.bonusKind === 'milkEgg' ? '奶蛋' : '奶蛙'}圖畫（+${q.points} 分）`;
+                        statusColor = 'text-emerald-700 font-bold';
                     }
 
                     totalScore += earned;
@@ -2919,7 +2947,7 @@
             }
 
             // 上方已逐項扣除作弊與卷面扣分；此處只負責限制最終分數範圍，避免重複扣分。
-            totalScore = Math.max(0, Math.min(100, Math.round(totalScore)));
+            totalScore = Math.max(0, Math.min(115, Math.round(totalScore)));
             document.getElementById('final-score-num').textContent = totalScore;
 
             const gradeBadge = document.getElementById('final-grade-badge');
