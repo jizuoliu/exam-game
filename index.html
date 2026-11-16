@@ -120,9 +120,15 @@
             }
         }
 
-        /* 老師批改資訊顯示在透明畫布上方，確保答案結果清楚可見 */
-        .teacher-judgment { position: relative; z-index: 30; pointer-events: auto; }
-        .teacher-judgment button { position: relative; z-index: 31; pointer-events: auto; touch-action: manipulation; }
+        /* 舊版「老師判定這題／沒錯／有錯」區塊已停用，避免殘留舊介面 */
+        .teacher-judgment,
+        .teacher-judgment button,
+        #teacher-judgment,
+        [data-role="teacher-judgment"] {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
 
         /* 手機窄螢幕：讓題目與答案完整留在考卷內 */
         @media (max-width: 640px) {
@@ -188,17 +194,6 @@
                 overflow-wrap: anywhere;
                 word-break: break-word;
                 line-height: 1.45;
-            }
-            .teacher-judgment {
-                position: relative;
-                z-index: 30;
-                pointer-events: auto;
-            }
-            .teacher-judgment button {
-                position: relative;
-                z-index: 31;
-                pointer-events: auto;
-                touch-action: manipulation;
             }
         }
 
