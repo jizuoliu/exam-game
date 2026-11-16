@@ -274,7 +274,7 @@
         </section>
     </div>
 
-    <!-- 手機大招：仿 Google 拍照上傳介面（純遊戲模擬，不會連接 Google） -->
+    <!-- 手機大招：遊戲內模擬拍攝考卷，模擬上傳 Google 後取得答案 -->
     <div id="phone-ultimate-modal" class="hidden fixed inset-0 z-[80] bg-black/75 backdrop-blur-sm items-center justify-center p-3 sm:p-5">
         <section class="w-full max-w-xl max-h-[88dvh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
             <div class="bg-white border-b px-4 py-3 flex items-center justify-between gap-2">
@@ -285,20 +285,20 @@
                 <div class="text-3xl sm:text-4xl font-black tracking-tight mb-4"><span class="text-blue-600">G</span><span class="text-red-500">o</span><span class="text-yellow-500">o</span><span class="text-blue-600">g</span><span class="text-green-600">l</span><span class="text-red-500">e</span></div>
                 <div class="border border-gray-300 rounded-full px-4 py-3 flex items-center gap-2 shadow-sm mb-4 text-left"><span class="text-gray-400">🔍</span><span class="text-gray-500 text-sm">考場秘密搜尋中……</span><span class="ml-auto">📷</span></div>
                 <h3 class="font-bold text-gray-800 mb-1">📸 手機拍照上傳</h3>
-                <p class="text-xs text-gray-500 mb-4">完全在遊戲內模擬拍照，不會開啟真正相機，也不會讀取裝置照片。</p>
+                <p class="text-xs text-gray-500 mb-4">用遊戲內手機鏡頭拍下目前考卷，再模擬上傳 Google 辨識答案；不會開啟裝置相機或讀取相簿。</p>
                 <div class="rounded-xl overflow-hidden border-4 border-gray-800 bg-gray-900 p-2">
-                    <div class="flex items-center justify-between text-white text-xs mb-2"><span>● REC 模擬相機</span><span>遊戲內攝影畫面</span></div>
+                    <div class="flex items-center justify-between text-white text-xs mb-2"><span>● REC 模擬相機</span><span>目前考卷拍攝畫面</span></div>
                     <canvas id="phone-sim-camera" width="640" height="360" class="w-full rounded-lg bg-slate-700"></canvas>
-                    <div class="text-[10px] text-gray-300 mt-1">畫面為遊戲生成的模擬場景</div>
+                    <div class="text-[10px] text-gray-300 mt-1">鏡頭會顯示目前這一局的考卷內容</div>
                 </div>
                 <button id="phone-sim-capture-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-full shadow">📸 拍照</button>
                 <div id="phone-photo-preview-wrap" class="hidden mt-4 border rounded-xl p-2 bg-gray-50">
                     <canvas id="phone-photo-preview" width="640" height="360" class="max-h-64 max-w-full mx-auto rounded-lg"></canvas>
-                    <div class="text-xs text-gray-500 mt-2">模擬照片已拍攝，僅存在遊戲畫面中。</div>
+                    <div class="text-xs text-gray-500 mt-2">考卷照片已拍好，按「上傳 Google」讓系統辨識並取得答案。</div>
                 </div>
-                <button id="phone-fake-upload-btn" disabled class="mt-4 w-full sm:w-auto bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-emerald-700 text-white font-black px-7 py-3 rounded-full">☁️ 模擬上傳</button>
+                <button id="phone-fake-upload-btn" disabled class="mt-4 w-full sm:w-auto bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-emerald-700 text-white font-black px-7 py-3 rounded-full">☁️ 上傳 Google</button>
                 <p id="phone-upload-status" class="text-sm font-bold text-gray-600 mt-3" aria-live="polite">按下「拍照」開始遊戲內模擬拍攝</p>
-                <div class="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">⚠️ 這是遊戲內仿 Google 介面，照片不會傳送到 Google 或任何伺服器。</div>
+                <div class="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">⚠️ Google 是遊戲內的模擬介面；拍照、上傳與答案辨識都在遊戲內完成，不會連接真實 Google。</div>
             </div>
         </section>
     </div>
@@ -357,7 +357,7 @@
             <div class="border-t border-gray-400 pt-1.5 flex items-center justify-between text-[11px] sm:text-xs text-gray-600 z-30 shrink-0">
                 <span id="tool-hint-banner" class="font-bold text-amber-800 truncate max-w-[65%]">💡 目前手持：自動筆（精準畫卡、寫太急會斷芯！）</span>
                 <div class="flex items-center gap-1.5">
-                    <button id="show-answer-key-btn" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-2.5 py-1 rounded shadow text-xs transition cursor-pointer">📖 本張答案</button>
+                    <button id="show-answer-key-btn" class="hidden bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-2.5 py-1 rounded shadow text-xs transition cursor-pointer">📖 本張答案</button>
                     <button id="next-sheet-btn" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded shadow text-xs transition cursor-pointer">
                         翻到背面 (第 2 頁) ➔
                     </button>
@@ -1290,20 +1290,34 @@
         function drawPhoneSimScene(canvas) {
             const c = canvas.getContext('2d');
             c.clearRect(0, 0, canvas.width, canvas.height);
-            const g = c.createLinearGradient(0, 0, 0, 360); g.addColorStop(0, '#334155'); g.addColorStop(1, '#0f172a');
-            c.fillStyle = g; c.fillRect(0, 0, 640, 360);
-            c.fillStyle = '#8b6b45'; c.fillRect(0, 250, 640, 110);
-            c.save(); c.translate(320, 190); c.rotate(-0.045);
-            c.fillStyle = '#f8f3df'; c.fillRect(-145, -115, 290, 220);
-            c.strokeStyle = '#475569'; c.lineWidth = 3; c.strokeRect(-145, -115, 290, 220);
-            c.fillStyle = '#1f2937'; c.font = 'bold 22px sans-serif'; c.textAlign = 'center'; c.fillText('模擬考試考卷', 0, -75);
-            c.strokeStyle = '#94a3b8'; c.lineWidth = 2;
-            for (let i=0;i<5;i++){ c.beginPath(); c.moveTo(-105,-40+i*30); c.lineTo(105,-40+i*30); c.stroke(); }
-            c.fillStyle = '#2563eb'; c.font = 'bold 18px sans-serif'; c.fillText('遊戲拍照畫面', 0, 75);
+            const g = c.createLinearGradient(0, 0, 0, canvas.height);
+            g.addColorStop(0, '#334155'); g.addColorStop(1, '#0f172a');
+            c.fillStyle = g; c.fillRect(0, 0, canvas.width, canvas.height);
+            c.fillStyle = '#8b6b45'; c.fillRect(0, 300, 640, 60);
+            // 將目前這一局實際抽到的考卷題目畫進遊戲鏡頭，而不是拍一張假的空白紙。
+            const questions = (state.examSheets || []).flat();
+            c.save(); c.translate(320, 180); c.rotate(-0.025);
+            c.fillStyle = '#fffdf3'; c.fillRect(-245, -155, 490, 300);
+            c.strokeStyle = '#cbd5e1'; c.lineWidth = 3; c.strokeRect(-245, -155, 490, 300);
+            c.textAlign = 'center'; c.fillStyle = '#111827'; c.font = 'bold 20px sans-serif';
+            c.fillText(`${state.selectedGrade || '模擬考'}｜考試考卷`, 0, -126);
+            c.textAlign = 'left'; c.font = '12px sans-serif'; c.fillStyle = '#1f2937';
+            const shown = questions.slice(0, 7);
+            shown.forEach((q, i) => {
+                const y = -94 + i * 32;
+                c.fillStyle = '#1f2937';
+                const line = `${q.num || i + 1}. ${String(q.text || '').replace(/\s+/g, ' ')}`;
+                c.fillText(line.length > 65 ? line.slice(0, 62) + '…' : line, -220, y);
+                c.strokeStyle = '#cbd5e1'; c.lineWidth = 1;
+                c.beginPath(); c.moveTo(-220, y + 8); c.lineTo(220, y + 8); c.stroke();
+            });
+            if (!shown.length) {
+                c.fillText('請先開始考試，讓手機拍攝目前考卷。', -220, -70);
+            }
             c.restore();
-            c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(12, 12, 160, 30);
-            c.fillStyle = '#fff'; c.font = '16px sans-serif'; c.textAlign = 'left'; c.fillText('● SIM CAMERA', 22, 33);
-            c.strokeStyle = '#fff'; c.lineWidth = 3; c.strokeRect(24, 55, 592, 270);
+            c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(12, 12, 170, 30);
+            c.fillStyle = '#fff'; c.font = 'bold 15px sans-serif'; c.textAlign = 'left'; c.fillText('● SIM CAMERA', 22, 33);
+            c.strokeStyle = '#fff'; c.lineWidth = 3; c.strokeRect(24, 48, 592, 292);
         }
         function openPhoneUltimate() {
             if (state.phoneUltimateUses <= 0) {
@@ -3206,12 +3220,18 @@
             preview.getContext('2d').drawImage(source, 0, 0, preview.width, preview.height);
             document.getElementById('phone-photo-preview-wrap').classList.remove('hidden');
             document.getElementById('phone-fake-upload-btn').disabled = false;
-            document.getElementById('phone-upload-status').textContent = '📸 模擬拍照完成！可以按下模擬上傳。';
+            document.getElementById('phone-upload-status').textContent = '📸 考卷拍攝完成！按下「上傳 Google」取得這張考卷的完整答案。';
             sfx.playClick();
         });
         document.getElementById('phone-fake-upload-btn').addEventListener('click', () => {
-            document.getElementById('phone-upload-status').textContent = '✅ 遊戲內模擬上傳成功！照片已顯示，沒有使用真實相機或傳送任何資料。';
+            const status = document.getElementById('phone-upload-status');
+            status.textContent = '☁️ 正在將考卷照片上傳到遊戲內模擬 Google……';
             sfx.playClick();
+            // 模擬 Google 辨識剛才拍攝的考卷，辨識完成後才顯示答案。
+            window.setTimeout(() => {
+                status.textContent = '✅ Google 辨識完成！已找到目前這張考卷的完整答案。';
+                openAnswerKey();
+            }, 650);
         });
         loadPhoneScoreData();
 
