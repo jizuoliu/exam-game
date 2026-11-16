@@ -2771,10 +2771,11 @@
                 }
 
                 if (totalRed > 0 && totalBlue > 0) {
-                    logs.push(`✅ 同時使用紅筆打勾（${totalRed} 筆）與藍筆打三角形（${totalBlue} 筆），批改超仔細！`);
+                    logs.push(`✅ 使用紅筆打勾（${totalRed} 筆）與藍筆打三角形（${totalBlue} 筆），批改標記完整！`);
                 } else {
-                    teacherPerf -= 15;
-                    logs.push(`⚠️ 建議同時用紅筆打勾對題、藍筆圈出錯題（-15 分）`);
+                    // 紅勾與藍三角是批改輔助工具，不應影響老師的閱卷分數。
+                    // 沒有使用藍筆三角形時，不再額外扣 15 分。
+                    logs.push(`ℹ️ 批改標記：紅筆 ${totalRed} 筆、藍筆三角形 ${totalBlue} 筆（標記工具不影響分數）`);
                 }
 
                 teacherPerf = Math.max(0, teacherPerf);
