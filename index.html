@@ -356,9 +356,12 @@
             <!-- 考卷底部頁碼與換頁按鈕 -->
             <div class="border-t border-gray-400 pt-1.5 flex items-center justify-between text-[11px] sm:text-xs text-gray-600 z-30 shrink-0">
                 <span id="tool-hint-banner" class="font-bold text-amber-800 truncate max-w-[65%]">💡 目前手持：自動筆（精準畫卡、寫太急會斷芯！）</span>
-                <button id="next-sheet-btn" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded shadow text-xs transition cursor-pointer">
-                    翻到背面 (第 2 頁) ➔
-                </button>
+                <div class="flex items-center gap-1.5">
+                    <button id="show-answer-key-btn" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-2.5 py-1 rounded shadow text-xs transition cursor-pointer">📖 本張答案</button>
+                    <button id="next-sheet-btn" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded shadow text-xs transition cursor-pointer">
+                        翻到背面 (第 2 頁) ➔
+                    </button>
+                </div>
             </div>
         </div>
     </main>
@@ -533,6 +536,7 @@
                 <div class="text-2xl sm:text-4xl my-0.5" aria-hidden="true">📱</div>
                 <div class="w-full text-center">
                     <span id="phone-score-progress-label" class="block w-full bg-sky-700 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">0 / 100 分</span>
+                    <span id="phone-newbie-gift-label" class="block w-full text-[9px] sm:text-[10px] font-black text-emerald-700 mt-0.5">🎁 新手禮包</span>
                 </div>
             </button>
 
@@ -795,6 +799,18 @@
             <button id="mp-overlay-action-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm py-2.5 rounded-xl shadow cursor-pointer">
                 確定
             </button>
+        </div>
+    </div>
+
+    <!-- 本張考卷完整答案 -->
+    <div id="answer-key-modal" class="hidden fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm items-center justify-center p-3 sm:p-4">
+        <div class="bg-white w-full max-w-xl max-h-[88vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="bg-indigo-800 text-white px-4 py-3 flex items-center justify-between shrink-0">
+                <div><h2 class="font-black text-lg">📖 本張考卷完整答案</h2><p id="answer-key-grade" class="text-xs text-indigo-100">目前年級</p></div>
+                <button id="close-answer-key-btn" class="bg-white/15 hover:bg-white/25 rounded-lg px-3 py-2 font-bold">✕ 關閉</button>
+            </div>
+            <div id="answer-key-content" class="p-4 overflow-y-auto space-y-2"></div>
+            <div class="p-3 border-t bg-gray-50 text-xs text-gray-500 shrink-0">答案依照目前這一局實際抽出的題目排列，包含正面、背面及加分題。</div>
         </div>
     </div>
 
@@ -1184,6 +1200,7 @@
             phoneScoreProgress: 0,
             phoneHundredMilestones: 0,
             phoneUltimateUses: 0,
+            phoneNewbieGiftClaimed: false,
             currentSheet: 0,
             examSheets: generateRandomExamSheets(),
             activeTool: 'mech',
@@ -1217,21 +1234,39 @@
         const PHONE_SCORE_STORAGE_KEY = 'exam-survival-phone-score-v2';
         function loadPhoneScoreData() {
             try {
-                const saved = JSON.parse(localStorage.getItem(PHONE_SCORE_STORAGE_KEY) || '{}');
-                state.phoneScoreProgress = Math.max(0, Number(saved.progress) || 0) % 100;
-                state.phoneHundredMilestones = Math.max(0, Math.floor(Number(saved.milestones) || 0)) % 10;
-                state.phoneUltimateUses = Math.max(0, Math.floor(Number(saved.uses) || 0));
-            } catch (e) { state.phoneScoreProgress = 0; state.phoneHundredMilestones = 0; state.phoneUltimateUses = 0; }
+                const raw = localStorage.getItem(PHONE_SCORE_STORAGE_KEY);
+                if (raw === null) {
+                    // 第一次遊玩：自動贈送 1 次手機大招，並永久記錄已領取，避免重新整理重複領取。
+                    state.phoneScoreProgress = 0;
+                    state.phoneHundredMilestones = 0;
+                    state.phoneUltimateUses = 1;
+                    state.phoneNewbieGiftClaimed = true;
+                    savePhoneScoreData();
+                } else {
+                    const saved = JSON.parse(raw || '{}');
+                    state.phoneScoreProgress = Math.max(0, Number(saved.progress) || 0) % 100;
+                    state.phoneHundredMilestones = Math.max(0, Math.floor(Number(saved.milestones) || 0)) % 10;
+                    state.phoneUltimateUses = Math.max(0, Math.floor(Number(saved.uses) || 0));
+                    state.phoneNewbieGiftClaimed = saved.newbieGiftClaimed === true;
+                }
+            } catch (e) {
+                state.phoneScoreProgress = 0;
+                state.phoneHundredMilestones = 0;
+                state.phoneUltimateUses = 0;
+                state.phoneNewbieGiftClaimed = false;
+            }
             updatePhoneUltimateUI();
         }
         function savePhoneScoreData() {
-            try { localStorage.setItem(PHONE_SCORE_STORAGE_KEY, JSON.stringify({ progress: state.phoneScoreProgress, milestones: state.phoneHundredMilestones, uses: state.phoneUltimateUses })); } catch (e) {}
+            try { localStorage.setItem(PHONE_SCORE_STORAGE_KEY, JSON.stringify({ progress: state.phoneScoreProgress, milestones: state.phoneHundredMilestones, uses: state.phoneUltimateUses, newbieGiftClaimed: state.phoneNewbieGiftClaimed })); } catch (e) {}
         }
         function updatePhoneUltimateUI() {
             const uses = document.getElementById('phone-uses-badge');
             const progress = document.getElementById('phone-score-progress-label');
             if (uses) uses.textContent = `${state.phoneUltimateUses}次`;
             if (progress) progress.textContent = `${state.phoneHundredMilestones}/10 個百比分段（${state.phoneScoreProgress}/100）`;
+            const giftLabel = document.getElementById('phone-newbie-gift-label');
+            if (giftLabel) giftLabel.textContent = state.phoneNewbieGiftClaimed ? '🎁 新手禮包已贈送' : '累積 10 次滿 100 分兌換 1 次';
             const btn = document.getElementById('phone-ultimate-btn');
             if (btn) {
                 btn.disabled = state.phoneUltimateUses <= 0;
@@ -1372,6 +1407,33 @@
                 }
                 scratchCtx.stroke();
             });
+        }
+
+        function openAnswerKey() {
+            const allQuestions = (state.examSheets || []).flat();
+            const grade = state.selectedGrade || allQuestions.find(q => q.type === 'bubble')?.grade || '隨機題庫';
+            const letters = ['A', 'B', 'C', 'D'];
+            const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+            document.getElementById('answer-key-grade').textContent = `年級：${grade}｜共 ${allQuestions.length} 題`;
+            document.getElementById('answer-key-content').innerHTML = allQuestions.map(q => {
+                let answer = '';
+                if (q.type === 'bubble') {
+                    const letter = letters[q.correctIndex] || '?';
+                    const choice = (q.options?.[q.correctIndex] || '').replace(/^\([A-D]\)\s*/, '');
+                    answer = `${letter}：${choice}`;
+                } else if (q.type === 'signature') {
+                    answer = '在簽名框內完成親筆簽名（依遊戲規則計分）';
+                } else if (q.type === 'bonus') {
+                    answer = q.bonusKind === 'milkEgg' ? '畫出奶蛋，完成可得 3 分' : '畫出奶蛙，完成可得 5 分';
+                }
+                return `<div class="rounded-xl border border-indigo-200 bg-indigo-50/70 p-3"><div class="flex items-center justify-between gap-2"><strong class="text-indigo-900">第 ${q.num} 題｜${escapeHtml(q.subject || q.grade || '')}</strong><span class="text-xs font-bold text-gray-500">${q.points} 分</span></div><div class="text-sm text-gray-700 mt-1">${escapeHtml(q.text)}</div><div class="mt-2 font-black text-emerald-700">標準答案：${escapeHtml(answer)}</div></div>`;
+            }).join('');
+            const modal = document.getElementById('answer-key-modal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
+        function closeAnswerKey() {
+            const modal = document.getElementById('answer-key-modal');
+            modal.classList.add('hidden'); modal.classList.remove('flex');
         }
 
         function renderQuestions() {
@@ -3132,6 +3194,9 @@
         document.getElementById('result-menu-btn').addEventListener('click', returnToMainMenu);
         document.getElementById('submit-early-btn').addEventListener('click', finishExam);
 
+        document.getElementById('show-answer-key-btn').addEventListener('click', openAnswerKey);
+        document.getElementById('close-answer-key-btn').addEventListener('click', closeAnswerKey);
+        document.getElementById('answer-key-modal').addEventListener('click', e => { if (e.target.id === 'answer-key-modal') closeAnswerKey(); });
         document.getElementById('phone-ultimate-btn').addEventListener('click', openPhoneUltimate);
         document.getElementById('close-phone-ultimate-btn').addEventListener('click', closePhoneUltimate);
         document.getElementById('phone-ultimate-modal').addEventListener('click', (e) => { if (e.target.id === 'phone-ultimate-modal') closePhoneUltimate(); });
