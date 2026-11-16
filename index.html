@@ -274,6 +274,31 @@
         </section>
     </div>
 
+    <!-- 手機大招：仿 Google 拍照上傳介面（純遊戲模擬，不會連接 Google） -->
+    <div id="phone-ultimate-modal" class="hidden fixed inset-0 z-[80] bg-black/75 backdrop-blur-sm items-center justify-center p-3 sm:p-5">
+        <section class="w-full max-w-xl max-h-[88dvh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="bg-white border-b px-4 py-3 flex items-center justify-between gap-2">
+                <div class="font-black text-xl tracking-tight"><span class="text-blue-600">G</span><span class="text-red-500">o</span><span class="text-yellow-500">o</span><span class="text-blue-600">g</span><span class="text-green-600">l</span><span class="text-red-500">e</span> <span class="text-xs text-gray-400">（考場模擬版）</span></div>
+                <button id="close-phone-ultimate-btn" class="bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1.5 text-sm font-bold text-gray-700">✕ 關閉</button>
+            </div>
+            <div class="overflow-y-auto p-4 sm:p-6 text-center">
+                <div class="text-3xl sm:text-4xl font-black tracking-tight mb-4"><span class="text-blue-600">G</span><span class="text-red-500">o</span><span class="text-yellow-500">o</span><span class="text-blue-600">g</span><span class="text-green-600">l</span><span class="text-red-500">e</span></div>
+                <div class="border border-gray-300 rounded-full px-4 py-3 flex items-center gap-2 shadow-sm mb-4 text-left"><span class="text-gray-400">🔍</span><span class="text-gray-500 text-sm">考場秘密搜尋中……</span><span class="ml-auto">📷</span></div>
+                <h3 class="font-bold text-gray-800 mb-1">📸 手機拍照上傳</h3>
+                <p class="text-xs text-gray-500 mb-4">使用一次手機大招。可直接拍照，或從裝置選擇圖片。</p>
+                <label for="phone-photo-input" class="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-full cursor-pointer shadow">📷 開啟相機／選擇照片</label>
+                <input id="phone-photo-input" type="file" accept="image/*" capture="environment" class="hidden">
+                <div id="phone-photo-preview-wrap" class="hidden mt-4 border rounded-xl p-2 bg-gray-50">
+                    <img id="phone-photo-preview" alt="手機選取的照片預覽" class="max-h-64 max-w-full mx-auto rounded-lg object-contain">
+                    <div class="text-xs text-gray-500 mt-2">照片只在目前遊戲畫面預覽，不會真的上傳到 Google。</div>
+                </div>
+                <button id="phone-fake-upload-btn" disabled class="mt-4 w-full sm:w-auto bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-emerald-700 text-white font-black px-7 py-3 rounded-full">☁️ 模擬上傳</button>
+                <p id="phone-upload-status" class="text-sm font-bold text-gray-600 mt-3" aria-live="polite">尚未選擇照片</p>
+                <div class="mt-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">⚠️ 這是遊戲內仿 Google 介面，照片不會傳送到 Google 或任何伺服器。</div>
+            </div>
+        </section>
+    </div>
+
     <!-- 中央桌面與考卷舞台 -->
     <main id="desk-area" class="flex-1 relative flex items-center justify-center p-2 sm:p-4 overflow-hidden">
         
@@ -336,7 +361,7 @@
 
     <!-- 底部文具盒工具列 (學生模式 7 大文具 + 單人考試限定小抄道具) -->
     <footer id="student-toolbar" class="w-full bg-[#3d2514]/95 border-t-4 border-[#2b190d] px-2 py-1.5 sm:py-2.5 z-30 shrink-0 shadow-2xl">
-        <div class="max-w-5xl mx-auto grid grid-cols-4 sm:grid-cols-8 gap-1.5 sm:gap-2">
+        <div class="max-w-5xl mx-auto grid grid-cols-5 sm:grid-cols-9 gap-1.5 sm:gap-2">
             
             <!-- 1. 鉛筆 -->
             <button id="tool-pencil" data-tool="pencil" class="tool-slot bg-amber-50/90 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-amber-900/30 relative cursor-pointer">
@@ -492,6 +517,18 @@
                 <div class="text-2xl sm:text-4xl my-0.5" aria-hidden="true">📖</div>
                 <div class="w-full text-center">
                     <span class="block w-full bg-amber-600 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">使用小抄</span>
+                </div>
+            </button>
+
+            <!-- 9. 手機大招：累積分數兌換使用次數 -->
+            <button id="phone-ultimate-btn" data-tool="phone" class="hidden tool-slot bg-sky-50/95 rounded-xl p-1.5 sm:p-2 flex flex-col items-center justify-between border-2 border-sky-500 relative cursor-pointer active:scale-95 transition-transform min-w-0">
+                <div class="w-full flex items-center justify-between text-[10px] sm:text-xs font-black text-sky-950">
+                    <span>📱 手機大招</span>
+                    <span id="phone-uses-badge" class="text-emerald-700 font-black">0次</span>
+                </div>
+                <div class="text-2xl sm:text-4xl my-0.5" aria-hidden="true">📱</div>
+                <div class="w-full text-center">
+                    <span id="phone-score-progress-label" class="block w-full bg-sky-700 text-white text-[9px] sm:text-[10px] font-bold py-0.5 rounded">0 / 100 分</span>
                 </div>
             </button>
 
@@ -1140,6 +1177,8 @@
             gameMode: 'student', // 'student' | 'teacher' | 'mp_student' | 'mp_teacher'
             selectedGrade: '小一',
             cheatCaughtCount: 0,
+            phoneScoreProgress: 0,
+            phoneUltimateUses: 0,
             currentSheet: 0,
             examSheets: generateRandomExamSheets(),
             activeTool: 'mech',
@@ -1168,6 +1207,68 @@
             scrollStartY: 0,
             scrollStartTop: 0
         };
+
+        // 手機大招記分：累積每 100 分兌換 10 次；使用一次後進度歸零重新計分。
+        const PHONE_SCORE_STORAGE_KEY = 'exam-survival-phone-score-v1';
+        function loadPhoneScoreData() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(PHONE_SCORE_STORAGE_KEY) || '{}');
+                state.phoneScoreProgress = Math.max(0, Number(saved.progress) || 0) % 100;
+                state.phoneUltimateUses = Math.max(0, Math.floor(Number(saved.uses) || 0));
+            } catch (e) { state.phoneScoreProgress = 0; state.phoneUltimateUses = 0; }
+            updatePhoneUltimateUI();
+        }
+        function savePhoneScoreData() {
+            try { localStorage.setItem(PHONE_SCORE_STORAGE_KEY, JSON.stringify({ progress: state.phoneScoreProgress, uses: state.phoneUltimateUses })); } catch (e) {}
+        }
+        function updatePhoneUltimateUI() {
+            const uses = document.getElementById('phone-uses-badge');
+            const progress = document.getElementById('phone-score-progress-label');
+            if (uses) uses.textContent = `${state.phoneUltimateUses}次`;
+            if (progress) progress.textContent = `${state.phoneScoreProgress} / 100 分`;
+            const btn = document.getElementById('phone-ultimate-btn');
+            if (btn) {
+                btn.disabled = state.phoneUltimateUses <= 0;
+                btn.classList.toggle('opacity-50', state.phoneUltimateUses <= 0);
+                btn.title = state.phoneUltimateUses > 0 ? '點擊使用手機大招' : '累積 100 分即可獲得 10 次';
+            }
+        }
+        function addPhoneScore(score) {
+            const gained = Math.max(0, Math.floor(Number(score) || 0));
+            state.phoneScoreProgress += gained;
+            let rewards = 0;
+            while (state.phoneScoreProgress >= 100) {
+                state.phoneScoreProgress -= 100;
+                state.phoneUltimateUses += 10;
+                rewards += 10;
+            }
+            savePhoneScoreData();
+            updatePhoneUltimateUI();
+            return { gained, rewards };
+        }
+        function openPhoneUltimate() {
+            if (state.phoneUltimateUses <= 0) {
+                document.getElementById('phone-upload-status').textContent = '手機次數不足！累積 100 分可獲得 10 次。';
+                return;
+            }
+            state.phoneUltimateUses -= 1;
+            state.phoneScoreProgress = 0;
+            savePhoneScoreData();
+            updatePhoneUltimateUI();
+            document.getElementById('phone-photo-input').value = '';
+            document.getElementById('phone-photo-preview-wrap').classList.add('hidden');
+            document.getElementById('phone-fake-upload-btn').disabled = true;
+            document.getElementById('phone-upload-status').textContent = '手機已啟動！請拍照或選擇一張照片。';
+            const modal = document.getElementById('phone-ultimate-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            sfx.playClick();
+        }
+        function closePhoneUltimate() {
+            const modal = document.getElementById('phone-ultimate-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
 
         const mp = {
             roomCode: null,
@@ -2475,6 +2576,7 @@
             if (mode === 'student' && selectedGrade) state.selectedGrade = selectedGrade;
             // 小抄只允許單人普通學生考試使用，不出現在老師或雙人模式
             document.getElementById('cheat-sheet-btn').classList.toggle('hidden', mode !== 'student'); // 只在單人普通考試顯示，仍屬於底部道具組
+            document.getElementById('phone-ultimate-btn').classList.toggle('hidden', !(mode === 'student' || mode === 'mp_student'));
             closeCheatSheetModal();
             state.isPlaying = true;
             state.currentSheet = 0;
@@ -2736,6 +2838,7 @@
 
             if (state.gameMode === 'mp_student' && mp.roomData) {
                 const expectedScore = calculateStudentExpectedScore();
+                addPhoneScore(expectedScore);
                 let studentMistakes = 0;
                 for (let s = 0; s < 2; s++) {
                     (state.examSheets[s] || []).forEach(q => {
@@ -2948,6 +3051,11 @@
 
             // 上方已逐項扣除作弊與卷面扣分；此處只負責限制最終分數範圍，避免重複扣分。
             totalScore = Math.max(0, Math.min(115, Math.round(totalScore)));
+            const phoneReward = addPhoneScore(totalScore);
+            const phoneRow = document.createElement('div');
+            phoneRow.className = 'flex justify-between items-center bg-sky-50 px-2 py-1 rounded border border-sky-200 text-sky-800 font-bold';
+            phoneRow.innerHTML = `<span>📱 手機大招記分：本次 +${phoneReward.gained} 分${phoneReward.rewards ? `，兌換 ${phoneReward.rewards} 次使用機會` : ''}</span><span>${state.phoneScoreProgress}/100 · 剩餘 ${state.phoneUltimateUses} 次</span>`;
+            breakdownEl.appendChild(phoneRow);
             document.getElementById('final-score-num').textContent = totalScore;
 
             const gradeBadge = document.getElementById('final-grade-badge');
@@ -3002,6 +3110,28 @@
         document.getElementById('back-menu-btn').addEventListener('click', returnToMainMenu);
         document.getElementById('result-menu-btn').addEventListener('click', returnToMainMenu);
         document.getElementById('submit-early-btn').addEventListener('click', finishExam);
+
+        document.getElementById('phone-ultimate-btn').addEventListener('click', openPhoneUltimate);
+        document.getElementById('close-phone-ultimate-btn').addEventListener('click', closePhoneUltimate);
+        document.getElementById('phone-ultimate-modal').addEventListener('click', (e) => { if (e.target.id === 'phone-ultimate-modal') closePhoneUltimate(); });
+        document.getElementById('phone-photo-input').addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) { document.getElementById('phone-upload-status').textContent = '請選擇圖片檔案。'; return; }
+            const preview = document.getElementById('phone-photo-preview');
+            if (preview.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
+            const objectUrl = URL.createObjectURL(file);
+            preview.dataset.objectUrl = objectUrl;
+            preview.src = objectUrl;
+            document.getElementById('phone-photo-preview-wrap').classList.remove('hidden');
+            document.getElementById('phone-fake-upload-btn').disabled = false;
+            document.getElementById('phone-upload-status').textContent = `已選擇：${file.name}`;
+        });
+        document.getElementById('phone-fake-upload-btn').addEventListener('click', () => {
+            document.getElementById('phone-upload-status').textContent = '✅ 模擬上傳成功！照片已顯示在遊戲內（沒有傳送到 Google）。';
+            sfx.playClick();
+        });
+        loadPhoneScoreData();
 
         window.onload = function () {
             resizeCanvas();
